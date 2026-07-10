@@ -1,7 +1,5 @@
 # javascript-code-library #
 
-[![CI](https://github.com/rozek/javascript-code-library/actions/workflows/ci.yml/badge.svg)](https://github.com/rozek/javascript-code-library/actions/workflows/ci.yml)
-
 a growing collection of ready-to-use UI components (built on [preact](https://preactjs.com/)+[htm](https://github.com/developit/htm)) and utility functions for JavaScript and TypeScript
 
 This library contains the functions and preact components I am using to build my tools and web apps
@@ -97,23 +95,27 @@ render(html`
 `, document.getElementById('rendering-target'))
 ```
 
-## Components & Modules Overview ##
+## Documentation ##
 
-An (incomplete, growing) overview of what is currently available - see the
-source code and its doc comments for the authoritative API:
+`javascript-code-library` bundles its exports into three curated
+namespaces - `JCL.net`, `JCL.misc` and `JCL.ui` (all individual members are
+also available as named exports). Each has its own Programming Manual and
+API Reference:
 
-* **Building blocks**: `OverlayBase`, `DialogBase`, `Customizable`, `Swatch`
-* **Layout**: `TabStrip`, `FlatListView`, `NestedListView`
-* **Text/Code/Drawing**: `RichTextEditor`, `CodeEditor`, `DrawingEditor`,
-  `BitmapEditor`, `Paintbrush`, `RealDrawEditor`, `Noteboard`
-* **Data-centric views**: `DataFlowProcessView`, `ChatView`, `Spreadsheet`,
-  `KanbanBoard`, `QRCodeView`
-* **File conversion utilities**: `DOCXFileReadAsText`/`AsHTML`/`AsMarkdown`,
-  `PDFFileReadAsText`
-* **Hooks**: `useCustomization`, `useI18n`, `useConfiguration`,
-  `useDragging`, `useClickDragging`, `useOnlineStatus`, `useWindowSize`, ...
-* **`jcl-applet` custom element**: embeds a JCL-based applet declaratively
-  into plain HTML
+| Package | Contains | Programming Manual | API Reference |
+|---|---|---|---|
+| `JCL.net` | connectivity checks, a hardened `fetch()` wrapper, content-negotiated fetchers, HTTP status helpers, a SearXNG search client | [net-programming-manual.md](docs/net-programming-manual.md) | [net-api-reference.md](docs/net-api-reference.md) |
+| `JCL.misc` | reading `File`s, HTML/Markdown/DOCX/PDF conversion, a small HTML parser, HTML-attribute (un)escaping | [misc-programming-manual.md](docs/misc-programming-manual.md) | [misc-api-reference.md](docs/misc-api-reference.md) |
+| `JCL.ui` | preact/htm re-exports, hooks, layout & content primitives, and ~200 `native`/`styled`/`legacy` UI components, plus the `<jcl-applet>` custom element | [ui-programming-manual.md](docs/ui-programming-manual.md) | [ui-api-reference.md](docs/ui-api-reference.md) |
+
+Everything else exported by the package (mostly re-exported from
+[`javascript-interface-library`](https://github.com/rozek/javascript-interface-library))
+is documented in that library's own README.
+
+> **Status:** these guides were generated from the current source as a
+> first cut and will be extended over time - in particular, the ~150
+> `native`/`styled`/`legacy` components in `JCL.ui` are so far only listed
+> by name in the API reference, without individual prop signatures.
 
 ## Build Instructions ##
 
