@@ -1,0 +1,69 @@
+{
+  "name": "javascript-code-library",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "a growing collection of ready-to-use UI components (built on preact+htm) and utility functions for JavaScript and TypeScript",
+  "main":   "./dist/javascript-code-library.esm.js",
+  "module": "./dist/javascript-code-library.esm.js",
+  "svelte": "./dist/javascript-code-library.esm.js",
+  "types":  "./dist/javascript-code-library.d.ts",
+  "exports": {
+    ".": {
+      "types":  "./dist/javascript-code-library.d.ts",
+      "import": "./dist/javascript-code-library.esm.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rozek/javascript-code-library.git"
+  },
+  "keywords": [
+    "javascript",
+    "typescript",
+    "ui-components",
+    "web-components",
+    "custom-elements",
+    "preact",
+    "htm",
+    "jquery-alternative"
+  ],
+  "author": "Andreas Rozek <a.rozek@gmx.de> (https://www.rozek.de/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rozek/javascript-code-library/issues"
+  },
+  "homepage": "https://github.com/rozek/javascript-code-library#readme",
+  "devDependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.11",
+    "@codemirror/lang-java": "^6.0.2",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-xml": "^6.1.0",
+    "@codemirror/lang-yaml": "^6.1.3",
+    "detect-it": "^4.0.1",
+    "htm": "^3.1.1",
+    "javascript-interface-library": "^1.1.0",
+    "jsdom": "^29.1.1",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^6.1.200",
+    "preact": "^10.29.7",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0",
+    "vite-plugin-dts": "^4.5.0",
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^3.1.0",
+    "zod": "^4.4.3"
+  }
+}
