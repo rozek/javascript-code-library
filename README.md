@@ -97,25 +97,26 @@ render(html`
 
 ## Documentation ##
 
-`javascript-code-library` bundles its exports into three curated
-namespaces - `JCL.net`, `JCL.misc` and `JCL.ui` (all individual members are
-also available as named exports). Each has its own Programming Manual and
-API Reference:
+`javascript-code-library` bundles its exports into four curated
+namespaces - `JCL.net`, `JCL.misc`, `JCL.ui` and `JCL.ai` (all individual
+members are also available as named exports). Each has its own Programming
+Manual and API Reference:
 
 | Package | Contains | Programming Manual | API Reference |
 |---|---|---|---|
 | `JCL.net` | connectivity checks, a hardened `fetch()` wrapper, content-negotiated fetchers, HTTP status helpers, a SearXNG search client | [net-programming-manual.md](docs/net-programming-manual.md) | [net-api-reference.md](docs/net-api-reference.md) |
 | `JCL.misc` | reading `File`s, HTML/Markdown/DOCX/PDF conversion, a small HTML parser, HTML-attribute (un)escaping | [misc-programming-manual.md](docs/misc-programming-manual.md) | [misc-api-reference.md](docs/misc-api-reference.md) |
-| `JCL.ui` | preact/htm re-exports, hooks, layout & content primitives, and ~200 `native`/`styled`/`legacy` UI components, plus the `<jcl-applet>` custom element | [ui-programming-manual.md](docs/ui-programming-manual.md) | [ui-api-reference.md](docs/ui-api-reference.md) |
+| `JCL.ui` | preact/htm re-exports, hooks, layout & content primitives, and ~120 `native`/`styled`/`legacy` UI components, plus the `<jcl-applet>` custom element | [ui-programming-manual.md](docs/ui-programming-manual.md) | [ui-api-reference.md](docs/ui-api-reference.md) |
 
 Everything else exported by the package (mostly re-exported from
 [`javascript-interface-library`](https://github.com/rozek/javascript-interface-library))
 is documented in that library's own README.
 
 > **Status:** these guides were generated from the current source as a
-> first cut and will be extended over time - in particular, the ~150
+> first cut and will be extended over time - in particular, the ~120
 > `native`/`styled`/`legacy` components in `JCL.ui` are so far only listed
-> by name in the API reference, without individual prop signatures.
+> by name in the API reference, without individual prop signatures, and
+> `JCL.ai` (its most recent addition) has no dedicated guide yet.
 
 ## Build Instructions ##
 

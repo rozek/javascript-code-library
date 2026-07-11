@@ -1879,6 +1879,9 @@ export declare function legacyDataFlowProcessView(PropSet: Indexable): any;
 
 export declare function legacyDrawingEditor(PropSet: Indexable): any;
 
+/**** legacyFileDropArea ****/
+export declare function legacyFileDropArea(PropSet: Indexable): any;
+
 export declare function legacyFlatListView(PropSet: Indexable): any;
 
 export declare function legacyKanbanBoard(PropSet: Indexable): any;
@@ -2571,6 +2574,7 @@ export declare const ui: {
     legacy: {
         PseudoFileInput: typeof legacyPseudoFileInput;
         PseudoDropDown: typeof legacyPseudoDropDown;
+        FileDropArea: typeof legacyFileDropArea;
         TabStrip: typeof legacyTabStrip;
         AccordionFold: typeof legacyAccordionFold;
         FlatListView: typeof legacyFlatListView;
@@ -2700,7 +2704,7 @@ export declare function usePointerDropSupport({ ViewRef, accepts, onEnter, onOve
     isOver: boolean;
 };
 
-export declare function useRerenderer(): Function;
+export declare function useRerenderer(): () => void;
 
 export declare function useToastContext(): JCL_ToastContextValue;
 
@@ -2873,7 +2877,7 @@ export declare function verticalSeparator(PropSet: Indexable): any;
 export declare function WebView(PropSet: Indexable): any;
 
 /**** WorldPositionOfPort - port position in pane *content* coordinates ****/
-export declare function WorldPositionOfPort(Node: JCL_DataFlowNode, Port: JCL_DataFlowPort): {
+export declare function WorldPositionOfPort(Node: JCL_DataFlowNode | Indexable, Port: JCL_DataFlowPort | Indexable): {
     x: number;
     y: number;
 };

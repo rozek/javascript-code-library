@@ -1,6 +1,6 @@
 {
   "name": "javascript-code-library",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "a growing collection of ready-to-use UI components (built on preact+htm) and utility functions for JavaScript and TypeScript",
   "main":   "./dist/javascript-code-library.esm.js",
