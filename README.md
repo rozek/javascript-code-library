@@ -1,5 +1,7 @@
 # javascript-code-library #
 
+[![CI](https://github.com/rozek/javascript-code-library/actions/workflows/ci.yml/badge.svg)](https://github.com/rozek/javascript-code-library/actions/workflows/ci.yml)
+
 a growing collection of ready-to-use UI components (built on [preact](https://preactjs.com/)+[htm](https://github.com/developit/htm)) and utility functions for JavaScript and TypeScript
 
 This library contains the functions and preact components I am using to build my tools and web apps
