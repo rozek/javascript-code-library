@@ -13,7 +13,8 @@
     ValueIsNumber, ValueIsNumberInRange, ValueIsFiniteNumber,
       ValueIsInteger, ValueIsIntegerInRange, ValueIsOrdinal, ValueIsCardinal,
     ValueIsString, ValueIsStringMatching, ValueIsText, ValueIsTextline,
-    ValueIsObject, ValueIsPlainObject,
+    ValueIsObject      as _ValueIsObject,       // both will be redefined below
+    ValueIsPlainObject as _ValueIsPlainObject,     // (to drop type narrowing)
     ValueIsFunction,
     ValueIsArray, ValueIsListSatisfying,
     ValueIsOneOf,
@@ -36,6 +37,21 @@
 /**** make some existing types indexable ****/
 
   export interface Indexable { [Key:string]:any }
+
+/**** non-narrowing variants of some interface-library type guards ****/
+
+// the originals are declared as TypeScript type guards ("Value is object")
+// and would narrow every checked value down to plain "object" - rejecting
+// any property access thereafter. These wrappers keep the boolean outcome
+// but deliberately drop the narrowing
+
+  export function ValueIsObject (Value:any):boolean {
+    return _ValueIsObject(Value)
+  }
+
+  export function ValueIsPlainObject (Value:any):boolean {
+    return _ValueIsPlainObject(Value)
+  }
 
 /**** define serializable types ****/
 
@@ -1264,6 +1280,57 @@ debugger               // not to be removed (helps debugging within the browser)
     )
   }
 
+/**** resolvedSpecialValue ****/
+
+// resolves a (possibly "special") input value into the value, placeholder and
+// disabling to be used for actual rendering
+
+  export function resolvedSpecialValue (
+    Value:any, disabled?:boolean, Placeholder?:string
+  ):Indexable {
+    return (
+      ValueIsSpecial(Value)
+      ? {
+          actualValue:undefined,
+          actualPlaceholder:(
+            Value === JCL_empty ? Placeholder ?? Value.Placeholder : Value.Placeholder
+          ),
+          actualDisabling:disabled || Value.disabled
+        }
+      : { actualValue:Value, actualPlaceholder:Placeholder, actualDisabling:disabled }
+    )
+  }
+
+/**** shared CSS fragments ****/
+
+// these constants are interpolated into component stylesheets and centralise
+// the mask-icon boilerplate as well as the standard glyphs (chevrons and
+// checkmark) which would otherwise be repeated as data URIs all over the
+// library. n.b.: constants are NOT hoisted - this note must remain in front
+// of all consuming stylesheets
+
+  const CSS_MaskIcon = (
+    '-webkit-mask-size:contain; mask-size:contain; ' +
+    '-webkit-mask-position:center center; mask-position:center center; ' +
+    '-webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;'
+  )
+
+  function CSS_MaskImage (SVGPath:string, StrokeWidth:number = 2):string {
+    const URL = (
+      `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' ` +
+      `viewBox='0 0 24 24' fill='none' stroke='black' ` +
+      `stroke-width='${StrokeWidth}' stroke-linecap='round' ` +
+      `stroke-linejoin='round'%3E%3Cpath d='${SVGPath}'/%3E%3C/svg%3E")`
+    )
+    return `-webkit-mask-image:${URL}; mask-image:${URL};`
+  }
+
+  const CSS_ChevronDown  = CSS_MaskImage('m6 9 6 6 6-6')
+  const CSS_ChevronUp    = CSS_MaskImage('m18 15-6-6-6 6')
+  const CSS_ChevronLeft  = CSS_MaskImage('m15 18-6-6 6-6')
+  const CSS_ChevronRight = CSS_MaskImage('m9 18 6-6-6-6')
+  const CSS_Checkmark    = CSS_MaskImage('M20 6 9 17l-5-5')
+
 //------------------------------------------------------------------------------
 //--                 Classification and Validation Functions                  --
 //------------------------------------------------------------------------------
@@ -1375,6 +1442,15 @@ debugger               // not to be removed (helps debugging within the browser)
     ValueIsPreactRef, rejectNil, 'preact component reference'
   ), expectedPreactRef = expectPreactRef
 
+/**** RegExpForPattern ****/
+
+// builds the RegExp matching complete strings for a given HTML input pattern -
+// keeps "JCL_...Pattern" constants and their "JCL_...RegExp" companions in sync
+
+  export function RegExpForPattern (Pattern:string):RegExp {
+    return new RegExp('^(?:' + Pattern + ')$')
+  }
+
 //------------------------------------------------------------------------------
 //--                              Normalizations                              --
 //------------------------------------------------------------------------------
@@ -1390,6 +1466,24 @@ debugger               // not to be removed (helps debugging within the browser)
 
   function _normalizedName (Name:string):string {
     return Name.replaceAll('.', '-')
+  }
+
+/**** parsedOption ****/
+
+// splits a "Value:Label" option textline (as used by drop-downs, radio groups,
+// multi-switches etc.) into its parts - a leading "-" marks the option as
+// disabled, a label consisting of dashes only serves as a separator ("ruler")
+
+  export function parsedOption (Option:string):Indexable {
+    let   Value    = Option.replace(/:.*$/,'').trim()
+    let   Label    = Option.replace(/^[^:]*:/,'').trim()
+    const isRuler  = /^[-]+$/.test(Label)
+    const disabled = (Label[0] === '-')
+
+    if (Value === Option) { Value = Value.replace(/^-/,'') }
+    if (disabled)         { Label = Label.replace(/^-/,'') }
+
+    return { Value,Label, disabled,isRuler }
   }
 
 //------------------------------------------------------------------------------
@@ -1506,6 +1600,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** acceptableNumber ****/
 
+// deliberately not based on "coercedNumberSatisfying" - NaN handling differs
+
   export function acceptableNumber (Value:any):number|undefined {
     if (ValueIsNumber(Value)) { return Value as number }
 
@@ -1521,25 +1617,15 @@ debugger               // not to be removed (helps debugging within the browser)
     Value:any, Minimum?:number, Maximum?:number,
     withMinimum?:boolean, withMaximum?:boolean
   ):number|undefined {
-    if (ValueIsString(Value)) {
-      Value = parseFloat(Value as string)
-      if (! ValueIsNumber(Value)) { return undefined }
-    }
-
-    if (ValueIsNumberInRange(Value,Minimum,Maximum,withMinimum,withMaximum)) {
-      return Value as number
-    }
+    return coercedNumberSatisfying(
+      Value, (Value:any) => ValueIsNumberInRange(Value,Minimum,Maximum,withMinimum,withMaximum)
+    )
   }
 
 /**** acceptableInteger ****/
 
   export function acceptableInteger (Value:any):number|undefined {
-    if (ValueIsInteger(Value)) { return Value as number }
-
-    if (ValueIsString(Value)) {
-      Value = parseFloat(Value as string)
-      if (ValueIsInteger(Value)) { return Value as number }
-    }
+    return coercedNumberSatisfying(Value,ValueIsInteger)
   }
 
 /**** acceptableIntegerInRange ****/
@@ -1547,108 +1633,93 @@ debugger               // not to be removed (helps debugging within the browser)
   export function acceptableIntegerInRange (
     Value:any, Minimum?:number, Maximum?:number
   ):number|undefined {
-    if (ValueIsString(Value)) {
-      Value = parseFloat(Value as string)
-      if (! ValueIsNumber(Value)) { return undefined }
-    }
-
-    if (ValueIsIntegerInRange(Value,Minimum,Maximum)) {
-      return Value as number
-    }
+    return coercedNumberSatisfying(
+      Value, (Value:any) => ValueIsIntegerInRange(Value,Minimum,Maximum)
+    )
   }
 
 /**** acceptableOrdinal ****/
 
   export function acceptableOrdinal (Value:any):number|undefined {
-    if (ValueIsOrdinal(Value)) { return Value as number }
-
-    if (ValueIsString(Value)) {
-      Value = parseFloat(Value as string)
-      if (ValueIsOrdinal(Value)) { return Value as number }
-    }
+    return coercedNumberSatisfying(Value,ValueIsOrdinal)
   }
 
 /**** acceptableCardinal ****/
 
   export function acceptableCardinal (Value:any):number|undefined {
-    if (ValueIsCardinal(Value)) { return Value as number }
-
-    if (ValueIsString(Value)) {
-      Value = parseFloat(Value as string)
-      if (ValueIsCardinal(Value)) { return Value as number }
-    }
+    return coercedNumberSatisfying(Value,ValueIsCardinal)
   }
 
 /**** acceptableString ****/
 
   export function acceptableString (Value:any):string|undefined {
-    if (ValueIsString(Value)) { return Value as string }
+    return acceptableValue(Value,ValueIsString)
   }
 
 /**** acceptableStringMatching ****/
 
   export function acceptableStringMatching (Value:any, Pattern:RegExp):string|undefined {
-    if (ValueIsStringMatching(Value, Pattern)) { return Value as string }
+    return acceptableValue(Value, (Value:any) => ValueIsStringMatching(Value,Pattern))
   }
 
 /**** acceptableText ****/
 
   export function acceptableText (Value:any):string|undefined {
-    if (ValueIsText(Value)) { return Value as string }
+    return acceptableValue(Value,ValueIsText)
   }
 
 /**** acceptableTextline ****/
 
   export function acceptableTextline (Value:any):string|undefined {
-    if (ValueIsTextline(Value)) { return Value as string }
+    return acceptableValue(Value,ValueIsTextline)
   }
 
 /**** acceptableFunction ****/
 
   export function acceptableFunction (Value:any):Function|undefined {
-    if (ValueIsFunction(Value)) { return Value as Function }
+    return acceptableValue(Value,ValueIsFunction)
   }
 
 /**** acceptableColor ****/
 
   export function acceptableColor (Value:any):JCL_Color|undefined {
-    if (ValueIsColor(Value)) { return Value as JCL_Color }
+    return acceptableValue(Value,ValueIsColor)
   }
 
 /**** acceptableEMailAddress ****/
 
   export function acceptableEMailAddress (Value:any):JCL_EMailAddress|undefined {
-    if (ValueIsEMailAddress(Value)) { return Value as JCL_EMailAddress }
+    return acceptableValue(Value,ValueIsEMailAddress)
   }
 
 /**** acceptablePhoneNumber ****/
 
   export function acceptablePhoneNumber (Value:any):JCL_PhoneNumber|undefined {
-    if (ValueIsPhoneNumber(Value)) { return Value as JCL_PhoneNumber }
+    return acceptableValue(Value,ValueIsPhoneNumber)
   }
 
 /**** acceptableURL ****/
 
   export function acceptableURL (Value:any):JCL_URL|undefined {
-    if (ValueIsURL(Value)) { return Value as JCL_URL }
+    return acceptableValue(Value,ValueIsURL)
   }
 
 /**** acceptableName ****/
 
   export function acceptableName (Value:any):JCL_Name|undefined {
-    if (ValueIsName(Value)) { return Value as JCL_Name }
+    return acceptableValue(Value,ValueIsName)
   }
 
 /**** acceptableNameOrIndex ****/
 
   export function acceptableNameOrIndex (Value:any):JCL_Name|JCL_Ordinal|undefined {
-    if (ValueIsName(Value) || ValueIsOrdinal(Value)) { return Value as JCL_Name|JCL_Ordinal }
+    return acceptableValue(Value, (Value:any) => ValueIsName(Value) || ValueIsOrdinal(Value))
   }
 
 /**** acceptablePath ****/
 
   export function acceptablePath (Value:any):JCL_Path|undefined {
-    if (ValueIsPath(Value)) { return Value as JCL_Path }
+    return acceptableValue(Value,ValueIsPath)
   }
 
 /**** missingProperty ****/
@@ -1656,6 +1727,22 @@ debugger               // not to be removed (helps debugging within the browser)
   export function missingProperty (Identifier:JCL_Identifier):never {
     expectIdentifier('Identifier',Identifier)
     throwError('MissingArgument: no ' + quoted(Identifier) + ' given')
+  }
+
+/**** coercedNumberSatisfying ****/
+
+// accepts numbers directly, parses numeric strings - in both cases only if
+// the result satisfies the given classifier
+
+  export function coercedNumberSatisfying (
+    Value:any, Classifier:Function
+  ):number|undefined {
+    if (Classifier(Value) === true) { return Value as number }
+
+    if (ValueIsString(Value)) {
+      Value = parseFloat(Value as string)
+      if (Classifier(Value) === true) { return Value as number }
+    }
   }
 
 //------------------------------------------------------------------------------
@@ -1848,10 +1935,18 @@ debugger               // not to be removed (helps debugging within the browser)
     expectLocale('Locale',Locale)
     Locale = Locale.toLowerCase()
 
-    const CountryCode = _LocaleToCountry[Locale]
-      ?? _LocaleToCountry[Locale.split('-')[0] as string]
+    const CountryCode = localeLookup(_LocaleToCountry,Locale)
     return CountryCode != null ? FlagEmojiForISOCode(CountryCode) : '🏳'
   }
+/**** localeLookup - tries the exact locale first, then its base language ****/
+
+// shared by "FlagEmojiForLocale", "nativeNameForLocale" and
+// "_CurrencyForLocale"
+
+  function localeLookup (Table:Indexable, Locale:string):any {
+    return Table[Locale] ?? Table[Locale.split('-')[0] as string]
+  }
+
 /**** Native Language Names ****/
 
   const _LocaleToNativeName:Record<string,string> = {
@@ -1877,9 +1972,7 @@ debugger               // not to be removed (helps debugging within the browser)
     expectLocale('Locale',Locale)
     Locale = Locale.toLowerCase()
 
-    return _LocaleToNativeName[Locale]
-      ?? _LocaleToNativeName[Locale.split('-')[0] as string]
-      ?? Locale
+    return localeLookup(_LocaleToNativeName,Locale) ?? Locale
   }
 //------------------------------------------------------------------------------
 //--                       Internationalization Support                       --
@@ -1907,47 +2000,29 @@ debugger               // not to be removed (helps debugging within the browser)
 
   function _CurrencyForLocale (Locale:JCL_Locale):string {
     Locale = Locale.toLowerCase()
-    if (_LocaleToCurrency[Locale] != null) { return _LocaleToCurrency[Locale] }
-    const Base = Locale.split('-')[0] as string
-    return _LocaleToCurrency[Base] ?? 'USD'
+    return localeLookup(_LocaleToCurrency,Locale) ?? 'USD'
   }
 
 /**** Translation Helpers ****/
 
-  const _PluralRulesCache        = new Map<string,Intl.PluralRules>()
-  const _NumberFormatCache       = new Map<string,Intl.NumberFormat>()
-  const _DateTimeFormatCache     = new Map<string,Intl.DateTimeFormat>()
-  const _RelativeTimeFormatCache = new Map<string,Intl.RelativeTimeFormat>()
+// "memoizedIntlFactory" builds a per-locale (and options) cache around any
+// "Intl" constructor - and keeps all four format factories below in sync
 
-  function _PluralRulesForLocale (Locale:string):Intl.PluralRules {
-    let Rules = _PluralRulesCache.get(Locale)
-    if (Rules == null) { _PluralRulesCache.set(Locale, Rules = new Intl.PluralRules(Locale)) }
-    return Rules
+  function memoizedIntlFactory (Constructor:any):Function {
+    const Cache = new Map<string,any>()
+    return (Locale:string, Options?:Indexable):any => {
+      const Key = Locale + '|' + JSON.stringify(Options)
+
+      let Instance = Cache.get(Key)
+      if (Instance == null) { Cache.set(Key, Instance = new Constructor(Locale,Options)) }
+      return Instance
+    }
   }
 
-  function _NumberFormatForLocale (Locale:string, Options?:Intl.NumberFormatOptions):Intl.NumberFormat {
-    const Key = Locale + '|' + JSON.stringify(Options)
-
-    let Format = _NumberFormatCache.get(Key)
-    if (Format == null) { _NumberFormatCache.set(Key, Format = new Intl.NumberFormat(Locale,Options)) }
-    return Format
-  }
-
-  function _DateTimeFormatForLocale (Locale:string, Options?:Intl.DateTimeFormatOptions):Intl.DateTimeFormat {
-    const Key = Locale + '|' + JSON.stringify(Options)
-
-    let Format = _DateTimeFormatCache.get(Key)
-    if (Format == null) { _DateTimeFormatCache.set(Key, Format = new Intl.DateTimeFormat(Locale,Options)) }
-    return Format
-  }
-
-  function _relativeTimeFormatForLocale (Locale:string, Options?:Intl.RelativeTimeFormatOptions):Intl.RelativeTimeFormat {
-    const Key = Locale + '|' + JSON.stringify(Options)
-
-    let Format = _RelativeTimeFormatCache.get(Key)
-    if (Format == null) { _RelativeTimeFormatCache.set(Key, Format = new Intl.RelativeTimeFormat(Locale,Options)) }
-    return Format
-  }
+  const _PluralRulesForLocale        = memoizedIntlFactory(Intl.PluralRules)
+  const _NumberFormatForLocale       = memoizedIntlFactory(Intl.NumberFormat)
+  const _DateTimeFormatForLocale     = memoizedIntlFactory(Intl.DateTimeFormat)
+  const _relativeTimeFormatForLocale = memoizedIntlFactory(Intl.RelativeTimeFormat)
 
   function _interpolatedText (Template:string, Vars:Indexable):string {
     return Template.replace(/\{\{(\w+)\}\}/g, (Match,Key) =>
@@ -2093,6 +2168,7 @@ debugger               // not to be removed (helps debugging within the browser)
   }
 
 /**** DefaultSwatchSet — the shadcn/ui default palette ("neutral") ****/
+
 // deviating from shadcn/ui (whose "neutral" theme uses an almost black
 // primary), primary and (focus) ring use Chrome's accent blue #0075FF (as
 // shown by native checkboxes etc. - dark mode gets a lighter variant of the
@@ -2104,8 +2180,8 @@ debugger               // not to be removed (helps debugging within the browser)
     light:{
       '--jcl-bg-color':            'oklch(1 0 0)',
       '--jcl-fg-color':            'oklch(0.145 0 0)',
-      '--jcl-primary-bg-color':    '#0075FF',        // Chrome's accent blue
-      '--jcl-primary-fg-color':    'oklch(1 0 0)',   // white
+      '--jcl-primary-bg-color':    '#0075FF',            // Chrome's accent blue
+      '--jcl-primary-fg-color':    'oklch(1 0 0)',                      // white
       '--jcl-secondary-bg-color':  'oklch(0.97 0 0)',
       '--jcl-secondary-fg-color':  'oklch(0.205 0 0)',
       '--jcl-muted-bg-color':      'oklch(0.97 0 0)',
@@ -2114,13 +2190,13 @@ debugger               // not to be removed (helps debugging within the browser)
       '--jcl-destructive-fg-color':'oklch(0.985 0 0)',
       '--jcl-accent-bg-color':     'oklch(0.97 0 0)',
       '--jcl-accent-fg-color':     'oklch(0.205 0 0)',
-      '--jcl-success-bg-color':    'oklch(0.627 0.194 149.214)', // green-600
+      '--jcl-success-bg-color':    'oklch(0.627 0.194 149.214)',    // green-600
       '--jcl-success-fg-color':    'oklch(0.985 0 0)',
-      '--jcl-warning-bg-color':    'oklch(0.769 0.188 70.08)',   // amber-500
+      '--jcl-warning-bg-color':    'oklch(0.769 0.188 70.08)',      // amber-500
       '--jcl-warning-fg-color':    'oklch(0.145 0 0)',
       '--jcl-border-color':        'oklch(0.922 0 0)',
-      '--jcl-ring-color':          '#0075FF',        // Chrome's accent blue
-      '--jcl-border-radius':       '8px',     // shadcn "rounded-md" equivalent
+      '--jcl-ring-color':          '#0075FF',            // Chrome's accent blue
+      '--jcl-border-radius':       '8px',      // shadcn "rounded-md" equivalent
       '--jcl-font':                'ui-sans-serif, system-ui, sans-serif',
       '--jcl-serif-font':          'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
       '--jcl-sans-serif-font':     'ui-sans-serif, system-ui, sans-serif',
@@ -2129,8 +2205,8 @@ debugger               // not to be removed (helps debugging within the browser)
     dark:{
       '--jcl-bg-color':            'oklch(0.145 0 0)',
       '--jcl-fg-color':            'oklch(0.985 0 0)',
-      '--jcl-primary-bg-color':    '#4D9FFF',   // lighter variant of #0075FF
-      '--jcl-primary-fg-color':    'oklch(1 0 0)',   // white
+      '--jcl-primary-bg-color':    '#4D9FFF',      // lighter variant of #0075FF
+      '--jcl-primary-fg-color':    'oklch(1 0 0)',                      // white
       '--jcl-secondary-bg-color':  'oklch(0.269 0 0)',
       '--jcl-secondary-fg-color':  'oklch(0.985 0 0)',
       '--jcl-muted-bg-color':      'oklch(0.269 0 0)',
@@ -2139,17 +2215,17 @@ debugger               // not to be removed (helps debugging within the browser)
       '--jcl-destructive-fg-color':'oklch(0.985 0 0)',
       '--jcl-accent-bg-color':     'oklch(0.269 0 0)',
       '--jcl-accent-fg-color':     'oklch(0.985 0 0)',
-      '--jcl-success-bg-color':    'oklch(0.723 0.219 149.579)', // green-500
+      '--jcl-success-bg-color':    'oklch(0.723 0.219 149.579)',    // green-500
       '--jcl-success-fg-color':    'oklch(0.145 0 0)',
-      '--jcl-warning-bg-color':    'oklch(0.828 0.189 84.429)',  // amber-400
+      '--jcl-warning-bg-color':    'oklch(0.828 0.189 84.429)',     // amber-400
       '--jcl-warning-fg-color':    'oklch(0.145 0 0)',
       '--jcl-border-color':        'oklch(1 0 0 / 10%)',
       // "--jcl-border-color" alone is too faint for outline-only controls
       // (Checkbox, Radiobutton, Switch), whose border is their only visual
       // cue when unchecked - so those get a brighter, dedicated border:
       '--jcl-input-border-color':  'oklch(1 0 0 / 20%)',
-      '--jcl-ring-color':          '#4D9FFF',   // lighter variant of #0075FF
-      '--jcl-border-radius':       '8px',     // shadcn "rounded-md" equivalent
+      '--jcl-ring-color':          '#4D9FFF',      // lighter variant of #0075FF
+      '--jcl-border-radius':       '8px',      // shadcn "rounded-md" equivalent
       '--jcl-font':                'ui-sans-serif, system-ui, sans-serif',
       '--jcl-serif-font':          'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
       '--jcl-sans-serif-font':     'ui-sans-serif, system-ui, sans-serif',
@@ -2295,6 +2371,16 @@ debugger               // not to be removed (helps debugging within the browser)
   export function loadedLibrary (Specifier:string):Promise<any> {
     expectTextline('module specifier',Specifier)
     return LibraryCache[Specifier] ??= import(Specifier)
+  }
+
+/**** memoizedLoader - runs a given loader at most once ****/
+
+// used for the module-level "loadXXXLibraries" functions of components with
+// lazily loaded dependencies: repeated calls return the very same promise
+
+  export function memoizedLoader (Loader:() => Promise<void>):() => Promise<void> {
+    let Result:Promise<void>|undefined
+    return () => Result ??= Loader()
   }
 
 /**** useLibraries - lazily loads libraries upon mounting a component ****/
@@ -2448,7 +2534,8 @@ debugger               // not to be removed (helps debugging within the browser)
       if (typeof Entry === 'string') {
         Template = Entry
       } else {
-        const PluralCategory = _PluralRulesForLocale(Locale).select(Count ?? 0)
+        const PluralCategory:Intl.LDMLPluralRule =
+          _PluralRulesForLocale(Locale).select(Count ?? 0)
         Template = Entry[PluralCategory] ?? Entry['other'] ?? Key
       }
 
@@ -2583,9 +2670,21 @@ debugger               // not to be removed (helps debugging within the browser)
   // drag was started from (e.g. "se-resize" of a resizer) during the drag.
   // Since only a single drag can be active at a time, the override is kept in
   // a module-level singleton - this way, *any* cleanup path can remove even an
-  // override that another instance failed to remove
+  // override that another instance failed to remove.
+  // "_setDragCursor" is also used by "usePointerDragSupport" which changes
+  // the cursor *during* a drag depending on the current drop effect
 
   let _DragCursorStyle:HTMLStyleElement|undefined
+
+  function _setDragCursor (Cursor:string):void {
+    if (typeof document === 'undefined') { return }
+
+    if (_DragCursorStyle == null) {
+      _DragCursorStyle = document.createElement('style')
+      document.head.appendChild(_DragCursorStyle)
+    }
+    _DragCursorStyle.textContent = '* { cursor:' + Cursor + ' !important }'
+  }
 
   function _installDragCursorFor (Target:HTMLElement):void {
     if (typeof document === 'undefined') { return }
@@ -2594,14 +2693,58 @@ debugger               // not to be removed (helps debugging within the browser)
     const Cursor = getComputedStyle(Target).cursor
     if ((Cursor === '') || (Cursor === 'auto')) { return }
 
-    _DragCursorStyle = document.createElement('style')
-      _DragCursorStyle.textContent = '* { cursor:' + Cursor + ' !important }'
-    document.head.appendChild(_DragCursorStyle)
+    _setDragCursor(Cursor)
   }
 
   function _removeDragCursor ():void {
     _DragCursorStyle?.remove()
     _DragCursorStyle = undefined
+  }
+
+/**** shared argument checks and helpers of all drag recognizers ****/
+
+  // used by "useDragging", "useClickDragging" and "usePointerDragSupport"
+
+  function expectContainerSpec (Container:any):void {
+    if ((Container != null) && ! ValueIsTextline(Container) && ! (Container instanceof HTMLElement) && ! ValueIsFunction(Container)) throwError(
+      'InvalidArgument: "Container" is neither a CSS selector nor an HTML element or a function'
+    )
+  }
+
+  function expectSelectorOrElement (Name:string, Value:any):void {
+    if ((Value != null) && ! ValueIsTextline(Value) && ! (Value instanceof HTMLElement)) throwError(
+      `InvalidArgument: "${Name}" is neither a CSS selector nor an HTML element`
+    )
+  }
+
+  function resolvedContainerFor (
+    View:HTMLElement, Container:any
+  ):HTMLElement|undefined {
+    switch (true) {
+      case Container == null:
+        return (View.parentElement ?? undefined) as HTMLElement|undefined
+      case Container === 'self':
+        return View as HTMLElement
+      case ValueIsTextline(Container):
+        return View.parentElement?.closest(Container as string) as HTMLElement|undefined
+      case ValueIsFunction(Container): {
+        const ContainerElement = (Container as Function)() as HTMLElement
+        return (
+          ContainerElement instanceof HTMLElement ? ContainerElement : undefined
+        )
+      }
+      default:
+        return Container as HTMLElement
+    }
+  }
+
+  function isPrimaryPointer (Event:PointerEvent):boolean {
+    switch (Event.pointerType) {
+      case 'mouse': return (Event.buttons === 1)
+      case 'touch': return Event.isPrimary
+      case 'pen':   return (Event.buttons === 1)
+      default:      return true
+    }
   }
 
 /**** useDragging ****/
@@ -2620,15 +2763,9 @@ debugger               // not to be removed (helps debugging within the browser)
     onDragCancellation?:JCL_DragHandler,
   }):Function|undefined {                 // returns handler for "onPointerDown"
     expectPreactRef('ViewRef',ViewRef)
-    if ((Container != null) && ! ValueIsTextline(Container) && ! (Container instanceof HTMLElement) && ! ValueIsFunction(Container)) throwError(
-      'InvalidArgument: "Container" is neither a CSS selector nor an HTML element or a function'
-    )
-    if ((onlyFrom != null) && ! ValueIsTextline(onlyFrom) && ! (onlyFrom instanceof HTMLElement)) throwError(
-      'InvalidArgument: "onlyFrom" is neither a CSS selector nor an HTML element'
-    )
-    if ((neverFrom != null) && ! ValueIsTextline(neverFrom) && ! (neverFrom instanceof HTMLElement)) throwError(
-      'InvalidArgument: "neverFrom" is neither a CSS selector nor an HTML element'
-    )
+    expectContainerSpec(Container)
+    expectSelectorOrElement ('onlyFrom',onlyFrom)
+    expectSelectorOrElement('neverFrom',neverFrom)
     allowFunction       ('"onDragStart" callback',onDragStart)
     allowFunction('"onDragContinuation" callback',onDragContinuation)
     allowFunction      ('"onDragFinish" callback',onDragFinish)
@@ -2658,28 +2795,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
     useEffect(() => {
       if (ViewRef.current == null) { return }   // that would be strange, though
-
-      let ContainerElement:HTMLElement|undefined
-        switch (true) {
-          case Container == null:
-            ContainerElement = ViewRef.current.parentElement as HTMLElement
-            break
-          case Container === 'self':
-            ContainerElement = ViewRef.current as HTMLElement
-            break
-          case ValueIsTextline(Container):
-            ContainerElement = ViewRef.current.parentElement?.closest(Container as string) as HTMLElement | undefined
-            break
-          case ValueIsFunction(Container):
-            ContainerElement = (Container as Function)() as HTMLElement
-            if (! (ContainerElement instanceof HTMLElement)) {
-              ContainerElement = undefined
-            }
-            break
-          default:
-            ContainerElement = Container as HTMLElement
-        }
-      ContainerRef.current = ContainerElement
+      ContainerRef.current = resolvedContainerFor(ViewRef.current,Container)
     },[ ViewRef.current /* Container */ ])// well, *never* change the Container!
 
     useEffect(() => {
@@ -2700,10 +2816,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
     const onPointerDown = useCallback((Event:PointerEvent) => {
       if (! (Event.target instanceof HTMLElement)) { return }
-
-      if ((Event.pointerType === 'mouse') && (Event.buttons !== 1)) { return }
-      if ((Event.pointerType === 'touch') && ! Event.isPrimary)     { return }
-      if ((Event.pointerType === 'pen')   && (Event.buttons !== 1)) { return }
+      if (! isPrimaryPointer(Event))               { return }
 
       if (! RecognizerMayDrag)          { return }
       if (ContainerRef.current == null) { return }
@@ -2862,15 +2975,9 @@ debugger               // not to be removed (helps debugging within the browser)
     onDragCancellation?:JCL_DragHandler,
   }):Function|undefined {                 // returns handler for "onPointerDown"
     expectPreactRef('ViewRef',ViewRef)
-    if ((Container != null) && ! ValueIsTextline(Container) && ! (Container instanceof HTMLElement) && ! ValueIsFunction(Container)) throwError(
-      'InvalidArgument: "Container" is neither a CSS selector nor an HTML element or a function'
-    )
-    if ((onlyFrom != null) && ! ValueIsTextline(onlyFrom) && ! (onlyFrom instanceof HTMLElement)) throwError(
-      'InvalidArgument: "onlyFrom" is neither a CSS selector nor an HTML element'
-    )
-    if ((neverFrom != null) && ! ValueIsTextline(neverFrom) && ! (neverFrom instanceof HTMLElement)) throwError(
-      'InvalidArgument: "neverFrom" is neither a CSS selector nor an HTML element'
-    )
+    expectContainerSpec(Container)                     // s. "useDragging" for...
+    expectSelectorOrElement ('onlyFrom',onlyFrom)      // ...these shared helpers
+    expectSelectorOrElement('neverFrom',neverFrom)
     allowCardinal      ('drag threshold',Threshold)
     allowFunction            ('"onClick" callback',onClick)
     allowFunction       ('"onDragStart" callback',onDragStart)
@@ -2911,28 +3018,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
     useEffect(() => {
       if (ViewRef.current == null) { return }   // that would be strange, though
-
-      let ContainerElement:HTMLElement|undefined
-        switch (true) {
-          case Container == null:
-            ContainerElement = ViewRef.current.parentElement as HTMLElement
-            break
-          case Container === 'self':
-            ContainerElement = ViewRef.current as HTMLElement
-            break
-          case ValueIsTextline(Container):
-            ContainerElement = ViewRef.current.parentElement?.closest(Container as string) as HTMLElement | undefined
-            break
-          case ValueIsFunction(Container):
-            ContainerElement = (Container as Function)() as HTMLElement
-            if (! (ContainerElement instanceof HTMLElement)) {
-              ContainerElement = undefined
-            }
-            break
-          default:
-            ContainerElement = Container as HTMLElement
-        }
-      ContainerRef.current = ContainerElement
+      ContainerRef.current = resolvedContainerFor(ViewRef.current,Container)
     },[ ViewRef.current /* Container */ ])// well, *never* change the Container!
 
     useEffect(() => {
@@ -2947,10 +3033,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
     const onPointerDown = useCallback((Event:PointerEvent) => {
       if (! (Event.target instanceof HTMLElement)) { return }
-
-      if ((Event.pointerType === 'mouse') && (Event.buttons !== 1)) { return }
-      if ((Event.pointerType === 'touch') && ! Event.isPrimary)     { return }
-      if ((Event.pointerType === 'pen')   && (Event.buttons !== 1)) { return }
+      if (! isPrimaryPointer(Event))               { return }
 
       if (! RecognizerIsActive)         { return }
       if (ContainerRef.current == null) { return }
@@ -3188,6 +3271,54 @@ debugger               // not to be removed (helps debugging within the browser)
   >Drop here</>`
 */
 
+/**** DragDepthHandlersFor ****/
+
+// builds the "dragenter/over/leave/drop" handler quartet shared by
+// "useDataDropSupport" and "useFileDropSupport": a depth counter makes
+// enter/leave robust against child element events. "accepts" filters
+// incoming drags, "processedDrop" extracts the "onDrop" arguments from a
+// drop event (or returns undefined to reject the drop entirely)
+
+  function DragDepthHandlersFor (Options:Indexable):Indexable {
+    const { Name, DragDepth, setIsOver, accepts, CallbacksOf, processedDrop } = Options
+
+    function handleDragOver (Event:DragEvent):void {
+      if (! accepts(Event)) { return }
+      Event.preventDefault()                       // required to allow drop
+      executeCallback(Name + ' callback "onDragOver"', CallbacksOf().onDragOver, Event)
+    }
+
+    function handleDragEnter (Event:DragEvent):void {
+      if (! accepts(Event)) { return }
+      Event.preventDefault()
+      if (++DragDepth.current === 1) {
+        setIsOver(true)
+        executeCallback(Name + ' callback "onDragEnter"', CallbacksOf().onDragEnter, Event)
+      }
+    }
+
+    function handleDragLeave (Event:DragEvent):void {
+      if ((DragDepth.current > 0) && (--DragDepth.current === 0)) {
+        setIsOver(false)
+        executeCallback(Name + ' callback "onDragLeave"', CallbacksOf().onDragLeave, Event)
+      }
+    }
+
+    function handleDrop (Event:DragEvent):void {
+      const DropArguments = processedDrop(Event)
+      if (DropArguments == null) { return }
+
+      Event.preventDefault()
+      DragDepth.current = 0
+      setIsOver(false)
+      executeCallback(Name + ' callback "onDrop"', CallbacksOf().onDrop, ...DropArguments, Event)
+    }
+
+    return { handleDragEnter, handleDragOver, handleDragLeave, handleDrop }
+  }
+
+/**** useDataDropSupport ****/
+
   export type JCL_DataDropSupportCallbacks = {
     onDragEnter?:(Event:DragEvent) => void,
     onDragOver?: (Event:DragEvent) => void,
@@ -3248,45 +3379,14 @@ debugger               // not to be removed (helps debugging within the browser)
           return [..._DataTransfer.types].some((Type) => (MIMETypes as string[]).includes(Type))
         }
 
-      /**** handleDragOver ****/
-
-        function handleDragOver (Event:DragEvent):void {
-          if (! _accepts(Event.dataTransfer)) { return }
-          Event.preventDefault()                       // required to allow drop
-          executeCallback('useDataDropSupport callback "onDragOver"', CallbackRef.current.onDragOver, Event)
-        }
-
-      /**** handleDragEnter — uses a depth counter to handle child element events ****/
-
-        function handleDragEnter (Event:DragEvent):void {
-          if (! _accepts(Event.dataTransfer)) { return }
-          Event.preventDefault()
-          if (++DragDepth.current === 1) {
-            setIsOver(true)
-            executeCallback('useDataDropSupport callback "onDragEnter"', CallbackRef.current.onDragEnter, Event)
-          }
-        }
-
-      /**** handleDragLeave — only fires callback when truly leaving the drop zone ****/
-
-        function handleDragLeave (Event:DragEvent):void {
-          if ((DragDepth.current > 0) && (--DragDepth.current === 0)) {
-            setIsOver(false)
-            executeCallback('useDataDropSupport callback "onDragLeave"', CallbackRef.current.onDragLeave, Event)
-          }
-        }
-
-      /**** handleDrop ****/
-
-        function handleDrop (Event:DragEvent):void {
-          if (! _accepts(Event.dataTransfer)) { return }
-          Event.preventDefault()
-          DragDepth.current = 0
-          setIsOver(false)
-          executeCallback('useDataDropSupport callback "onDrop"', CallbackRef.current.onDrop, Event.dataTransfer!, Event)
-        }
-
-        return { handleDragEnter, handleDragOver, handleDragLeave, handleDrop }
+        return DragDepthHandlersFor({
+          Name:'useDataDropSupport', DragDepth, setIsOver,
+          accepts:    (Event:DragEvent) => _accepts(Event.dataTransfer),
+          CallbacksOf:() => CallbackRef.current,
+          processedDrop:(Event:DragEvent) => (
+            _accepts(Event.dataTransfer) ? [ Event.dataTransfer! ] : undefined
+          )
+        })
       }, [ MIMETypeKey ])            // recreate only when accepted types change
 
   /**** return drop props to spread onto the drop target element ****/
@@ -3357,15 +3457,9 @@ debugger               // not to be removed (helps debugging within the browser)
     onDrop?:            JCL_PointerDragDropHandler,
   }):Function|undefined {
     expectPreactRef('preact component reference',ViewRef)
-    if ((Container != null) && ! ValueIsTextline(Container) && ! (Container instanceof HTMLElement) && ! ValueIsFunction(Container)) throwError(
-      'InvalidArgument: "Container" is neither a CSS selector nor an HTML element or a function'
-    )
-    if ((onlyFrom  != null) && ! ValueIsTextline(onlyFrom)  && ! (onlyFrom  instanceof HTMLElement)) throwError(
-      'InvalidArgument: "onlyFrom" is neither a CSS selector nor an HTML element'
-    )
-    if ((neverFrom != null) && ! ValueIsTextline(neverFrom) && ! (neverFrom instanceof HTMLElement)) throwError(
-      'InvalidArgument: "neverFrom" is neither a CSS selector nor an HTML element'
-    )
+    expectContainerSpec(Container)                     // s. "useDragging" for...
+    expectSelectorOrElement ('onlyFrom',onlyFrom)      // ...these shared helpers
+    expectSelectorOrElement('neverFrom',neverFrom)
     allowCardinal              ('drag threshold',Threshold)
     allowListSatisfying         ('allowedEffects',allowedEffects,(Value:any) => ValueIsOneOf(Value,JCL_PointerDropEffects),'list of drop effects',1)
     allowTextline      ('"GrabCursor" CSS cursor',GrabCursor)
@@ -3416,7 +3510,6 @@ debugger               // not to be removed (helps debugging within the browser)
     const StartEvent            = useRef<PointerEvent|undefined>()
     const isDragging            = useRef<boolean>(false)
     const hasMoved              = useRef<boolean>(false)
-    const savedCursor           = useRef<string>('')
     const currentTarget         = useRef<HTMLElement|undefined>()
     const currentEntry          = useRef<JCL_DropTargetEntry|undefined>()
     const currentChosenEffect   = useRef<JCL_DropEffect|undefined>()
@@ -3425,28 +3518,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
     useEffect(() => {
       if (ViewRef.current == null) { return }
-
-      let ContainerElement:HTMLElement|undefined
-        switch (true) {
-          case Container == null:
-            ContainerElement = ViewRef.current.parentElement as HTMLElement
-            break
-          case Container === 'self':
-            ContainerElement = ViewRef.current as HTMLElement
-            break
-          case ValueIsTextline(Container):
-            ContainerElement = ViewRef.current.parentElement?.closest(Container as string) as HTMLElement | undefined
-            break
-          case ValueIsFunction(Container):
-            ContainerElement = (Container as Function)() as HTMLElement
-            if (! (ContainerElement instanceof HTMLElement)) {
-              ContainerElement = undefined
-            }
-            break
-          default:
-            ContainerElement = Container as HTMLElement
-        }
-      ContainerRef.current = ContainerElement
+      ContainerRef.current = resolvedContainerFor(ViewRef.current,Container)
     },[ ViewRef.current /* Container */ ])// well, *never* change the Container!
 
     useEffect(() => {
@@ -3462,6 +3534,11 @@ debugger               // not to be removed (helps debugging within the browser)
         window.removeEventListener('pointermove',  onPointerMove)
         window.removeEventListener('pointerup',    onPointerUp)
         window.removeEventListener('pointercancel',onPointerCancel)
+
+        if (isDragging.current) {              // unmounted while still dragging
+          isDragging.current = false
+          _removeDragCursor()
+        }
       }
     },[])
 
@@ -3469,10 +3546,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
     const onPointerDown = useCallback((Event:PointerEvent) => {
       if (! (Event.target instanceof HTMLElement)) { return }
-
-      if ((Event.pointerType === 'mouse') && (Event.buttons !== 1)) { return }
-      if ((Event.pointerType === 'touch') && ! Event.isPrimary)     { return }
-      if ((Event.pointerType === 'pen')   && (Event.buttons !== 1)) { return }
+      if (! isPrimaryPointer(Event))               { return }
 
       if (! RecognizerIsActive)         { return }
       if (ContainerRef.current == null) { return }
@@ -3513,7 +3587,6 @@ debugger               // not to be removed (helps debugging within the browser)
         if (Math.sqrt(dx*dx + dy*dy) < ThresholdRef.current) { return }
         hasMoved.current = true
         if (RecognizerMayDragRef.current) {
-          savedCursor.current = document.body.style.cursor
           Callbacks.current!.onDragStart?.(0,0, StartPosition.current!.x,StartPosition.current!.y, StartEvent.current!)
         }
       }
@@ -3558,7 +3631,7 @@ debugger               // not to be removed (helps debugging within the browser)
           }
         }
 
-        document.body.style.cursor = (
+        _setDragCursor(               // shares the singleton of "useDragging"
           currentTarget.current != null               ? _cursorForEffect(currentChosenEffect.current) :
           _isWithinView(Event.clientX, Event.clientY) ? GrabbedCursorRef.current                      :
           'no-drop'
@@ -3596,7 +3669,7 @@ debugger               // not to be removed (helps debugging within the browser)
       window.removeEventListener('pointercancel',onPointerCancel)
 
       if (hasMoved.current) {
-        document.body.style.cursor = savedCursor.current
+        _removeDragCursor()
       }
 
       if (cancelled) {
@@ -3924,6 +3997,9 @@ debugger               // not to be removed (helps debugging within the browser)
 
   /**** drop event handlers — recreated only when accepted types change ****/
 
+  // the handler quartet itself is built by "DragDepthHandlersFor" (shared
+  // with "useDataDropSupport", see there)
+
     const acceptKey = FileTypes.join(',')       // stable string key for useMemo
 
     const { handleDragEnter, handleDragOver, handleDragLeave, handleDrop } =
@@ -3956,62 +4032,31 @@ debugger               // not to be removed (helps debugging within the browser)
           )
         }
 
-      /**** handleDragEnter — uses a depth counter to handle child element events ****/
 
-        function handleDragEnter (Event:DragEvent):void {
-          if (OptionsRef.current.disabled == true) { return }
-          if (! _accepts(Event.dataTransfer))      { return }
 
-          Event.preventDefault()
-          if (++DragDepth.current === 1) {
-            setIsOver(true)
-            executeCallback('useFileDropSupport callback "onDragEnter"', OptionsRef.current.onDragEnter, Event)
+        return DragDepthHandlersFor({
+          Name:'useFileDropSupport', DragDepth, setIsOver,
+          accepts:(Event:DragEvent) => (
+            (OptionsRef.current.disabled != true) && _accepts(Event.dataTransfer)
+          ),
+          CallbacksOf:() => OptionsRef.current,
+          processedDrop:(Event:DragEvent) => {
+            if (OptionsRef.current.disabled == true) { return undefined }
+
+            const FileList = Event.dataTransfer?.files
+            if (FileList == null) { return undefined }
+
+            let acceptableFiles = Array.from(FileList).filter(
+              (File:Indexable) => TypeIsAcceptable(File.type.toLowerCase())
+            )
+            if (OptionsRef.current.multiple != true) {
+              acceptableFiles = acceptableFiles.slice(0,1)
+            }
+            return (
+              acceptableFiles.length === 0 ? undefined : [ acceptableFiles ]
+            )
           }
-        }
-
-      /**** handleDragOver ****/
-
-        function handleDragOver (Event:DragEvent):void {
-          if (OptionsRef.current.disabled == true) { return }
-          if (! _accepts(Event.dataTransfer))      { return }
-
-          Event.preventDefault()                       // required to allow drop
-          executeCallback('useFileDropSupport callback "onDragOver"', OptionsRef.current.onDragOver, Event)
-        }
-
-      /**** handleDragLeave — only fires callback when truly leaving the target ****/
-
-        function handleDragLeave (Event:DragEvent):void {
-          if ((DragDepth.current > 0) && (--DragDepth.current === 0)) {
-            setIsOver(false)
-            executeCallback('useFileDropSupport callback "onDragLeave"', OptionsRef.current.onDragLeave, Event)
-          }
-        }
-
-      /**** handleDrop ****/
-
-        function handleDrop (Event:DragEvent):void {
-          if (OptionsRef.current.disabled == true) { return }
-
-          const FileList = Event.dataTransfer?.files
-          if (FileList == null) { return }
-
-          let acceptableFiles = Array.from(FileList).filter(
-            (File:Indexable) => TypeIsAcceptable(File.type.toLowerCase())
-          )
-          if (OptionsRef.current.multiple != true) {
-            acceptableFiles = acceptableFiles.slice(0,1)
-          }
-          if (acceptableFiles.length === 0) { return }
-
-          Event.preventDefault()
-          DragDepth.current = 0
-          setIsOver(false)
-          executeCallback('useFileDropSupport callback "onDrop"', OptionsRef.current.onDrop, acceptableFiles, Event)
-        }
-
-
-        return { handleDragEnter, handleDragOver, handleDragLeave, handleDrop }
+        })
       }, [ acceptKey ])            // recreate only when accepted types change
 
   /**** return drop props to spread onto the drop target element ****/
@@ -4025,6 +4070,143 @@ debugger               // not to be removed (helps debugging within the browser)
     }
   }
 
+
+/**** useShownValue ****/
+
+// guards the value shown in an input element against external changes while
+// that element is focused - external updates only take effect after blurring
+
+  export function useShownValue (Value:any, normalized?:Function):Indexable {
+    const ViewRef    = useRef()
+    const shownValue = useRef<any>(undefined)
+
+    let ValueToShow = (Value == null ? JCL_empty : Value)
+    if (
+      (ViewRef.current != null) &&
+      (document.activeElement === ViewRef.current)
+    ) {
+      ValueToShow = shownValue.current
+    } else {
+      if (normalized != null) { ValueToShow = normalized(ValueToShow) }
+      shownValue.current = ValueToShow
+    }
+
+    return { ViewRef, shownValue, ValueToShow }
+  }
+
+/**** useHybridValue ****/
+
+// manages the usual "hybrid" state of controlled JCL components: a value
+// which may be set externally at any time (via prop) but is otherwise
+// changed internally - returns the internal ref whose ".current" holds the
+// currently valid value and may be mutated (followed by an explicit
+// rerendering) to change it internally
+
+  export function useHybridValue (externalValue:any, DefaultValue?:any):Indexable {
+    const externalRef = useRef(externalValue ?? DefaultValue)
+    const internalRef = useRef(externalValue ?? DefaultValue)
+
+    if ((externalValue != null) && (externalValue !== externalRef.current)) {
+      internalRef.current = externalValue
+      externalRef.current = externalValue
+    }
+
+    return internalRef
+  }
+
+/**** useInputCallbacks ****/
+
+// provides the "onInput" and "onBlur" handlers shared by most input components
+// - by default, the entered value is taken from "Event.target.value" and kept
+// in "shownValue", but "processedInput" may implement any other extraction
+
+  export function useInputCallbacks (Options:Indexable):Indexable {
+    const {
+      Name, actualDisabling, shownValue, onInput,onValueInput,onBlur,
+      processedInput
+    } = Options
+    const rerender = useRerenderer()
+
+    const _onInput = useCallback((Event:any) => {
+      consumeEvent(Event)
+      if (actualDisabling == true) { return }
+
+      executeCallback(Name + ' callback "onInput"', onInput, Event)
+
+      let enteredValue
+      if (processedInput == null) {
+        enteredValue = Event.target.value
+        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
+      } else {
+        enteredValue = processedInput(Event)
+      }
+      executeCallback(Name + ' callback "onValueInput"', onValueInput, enteredValue,Event)
+    }, [ actualDisabling, onInput,onValueInput ])
+
+    const _onBlur = useCallback((Event:any) => {
+      rerender()                 // because the shown value may now be different
+      executeCallback(Name + ' callback "onBlur"', onBlur, Event)
+    }, [ onBlur ])
+
+    return { _onInput,_onBlur, rerender }
+  }
+
+/**** useDatalist ****/
+
+// renders an optional <datalist> with the given suggestions and returns both
+// the list itself and the id to be used in the "list" attribute of an input
+
+  export function useDatalist (
+    Suggestions?:string[], renderedOption?:Function
+  ):Indexable {
+    const internalId = useId()
+
+    let SuggestionList:any = '', SuggestionId
+    if ((Suggestions != null) && (Suggestions.length > 0)) {
+      SuggestionId = internalId + '-Suggestions'
+
+      const OptionView = renderedOption ?? (
+        (Value:string) => html`<option value=${Value}></option>`
+      )
+      SuggestionList = html`<datalist id=${SuggestionId}>
+        ${Suggestions.map((Value:string) => OptionView(Value))}
+      </datalist>`
+    }
+
+    return { SuggestionId,SuggestionList }
+  }
+
+/**** useMeasuredPaneSize ****/
+
+// measures the inner size of a scrolling container (via ResizeObserver) -
+// used by NoteBoard and DataFlowProcessView as the default size of their
+// panes. Identical sizes are kept referentially stable to avoid rerenders
+
+  export function useMeasuredPaneSize (ScrollerRef:Indexable):Indexable {
+    const [ measuredPaneSize,setMeasuredPaneSize ] = useState<Indexable>({
+      Width:0, Height:0
+    })
+
+    useLayoutEffect(() => {
+      const Scroller = ScrollerRef.current
+      if (Scroller == null) { return }
+
+      const Observer = new ResizeObserver(() => setMeasuredPaneSize(
+        (oldSize:Indexable) => {
+          const Width = Scroller.clientWidth, Height = Scroller.clientHeight
+          return (
+            (oldSize.Width === Width) && (oldSize.Height === Height)
+            ? oldSize                            // avoids unnecessary rerenders
+            : { Width,Height }
+          )
+        }
+      ))
+      Observer.observe(Scroller)
+      return () => Observer.disconnect()
+    },[])
+
+    return measuredPaneSize
+  }
 
 //----------------------------------------------------------------------------//
 //                           Confirmation Handling                            //
@@ -4444,6 +4626,62 @@ console.warn(ErrorToShow)
   }
 
 //----------------------------------------------------------------------------//
+//             shared helpers for Overlay, Dialog and Toast bases             //
+//----------------------------------------------------------------------------//
+
+/**** strippedDescriptor - a copy without any "undefined" entries ****/
+
+  function strippedDescriptor (Descriptor:Indexable):Indexable {
+    Descriptor = { ...Descriptor }
+    Object.keys(Descriptor).forEach((Key:string) => {
+      if (Descriptor[Key] === undefined) { delete Descriptor[Key] }
+    })
+    return Descriptor
+  }
+
+/**** publishedBaseAPI - publishes a base API in its context and "APIRef" ****/
+
+  function publishedBaseAPI (
+    Context:Indexable, APIRef:Indexable|undefined, API:Indexable
+  ):void {
+    Object.assign(Context, API)                         // referentially stable!
+
+    if (APIRef != null) {
+      if (APIRef.current == null) { APIRef.current = {} }
+      Object.assign(APIRef.current, API)
+    }
+  }
+
+/**** missingBaseActionFor - placeholder for functions outside their base ****/
+
+  function missingBaseActionFor (ContextName:string):any {
+    return () => {
+      throwError('MissingArgument:function not in ' + ContextName)
+    }
+  }
+
+/**** useEventSwallower - consumes the given event types on an element ****/
+
+// used by "JCL_Underlay" and "JCL_ModalLayer" to block interactions with
+// anything below them
+
+  function useEventSwallower (ViewRef:Indexable, EventTypes:string[]):void {
+    useEffect(() => {
+      const View = ViewRef.current as HTMLElement
+      if (View == null) { return }
+
+      EventTypes.forEach((EventType:string) => {
+        View.addEventListener(EventType, consumeEvent)
+      })
+      return () => {
+        EventTypes.forEach((EventType:string) => {
+          View.removeEventListener(EventType, consumeEvent)
+        })
+      }
+    }, [])
+  }
+
+//----------------------------------------------------------------------------//
 //                                OverlayBase                                 //
 //----------------------------------------------------------------------------//
 
@@ -4463,14 +4701,18 @@ console.warn(ErrorToShow)
 
   type JCL_$Overlay = JCL_Overlay & { [$normalizedName]:JCL_Name }
 
-/**** built-in labels ****/
+/**** built-in labels (shared with dialogs - see "JCL_DialogView") ****/
 
-  _extendL10nDictionary('en', { 'jcl.overlay.close':'Close' })
-  _extendL10nDictionary('de', { 'jcl.overlay.close':'Schließen' })
-  _extendL10nDictionary('fr', { 'jcl.overlay.close':'Fermer' })
-  _extendL10nDictionary('es', { 'jcl.overlay.close':'Cerrar' })
-  _extendL10nDictionary('it', { 'jcl.overlay.close':'Chiudi' })
-  _extendL10nDictionary('pt', { 'jcl.overlay.close':'Fechar' })
+  const _CloseTranslations:Indexable = {
+    en:'Close',  de:'Schließen', fr:'Fermer',
+    es:'Cerrar', it:'Chiudi',    pt:'Fechar'
+  }
+  Object.keys(_CloseTranslations).forEach((Locale:string) => {
+    _extendL10nDictionary(Locale, {
+      'jcl.overlay.close':_CloseTranslations[Locale],
+      'jcl.dialog.close': _CloseTranslations[Locale],
+    })
+  })
 
 /**** OverlayBase ****/
 
@@ -4494,10 +4736,7 @@ console.warn(ErrorToShow)
       function openOverlay (Descriptor:JCL_Overlay & Indexable):void {
         expectPlainObject('overlay descriptor', Descriptor)
 
-        Descriptor = { ...Descriptor }
-        Object.keys(Descriptor).forEach((Key:string) => {
-          if (Descriptor[Key] === undefined) { delete Descriptor[Key] }
-        })
+        Descriptor = strippedDescriptor(Descriptor) as JCL_Overlay & Indexable
 
         validateOverlayDescriptor(Descriptor)
 
@@ -4640,12 +4879,7 @@ console.warn(ErrorToShow)
       }
 
       const OverlayContext = useOverlayContext()
-      Object.assign(OverlayContext, OverlayAPI)         // referentially stable!
-
-      if (APIRef != null) {
-        if (APIRef.current == null) { APIRef.current = {} }
-        Object.assign(APIRef.current, OverlayAPI)
-      }
+      publishedBaseAPI(OverlayContext,APIRef,OverlayAPI)
 
     /**** Escape closes the topmost non-modal overlay ****/
 
@@ -4736,21 +4970,8 @@ console.warn(ErrorToShow)
 
       const UnderlayRef = useRef<HTMLDivElement>()
 
-      useEffect(() => {                    // install/uninstall event swallowers
-        const View = UnderlayRef.current
-        if (View == null) { return }
-
-        JCL_Underlay_EventTypes.forEach((EventType:string) => {
-          View.addEventListener(EventType, consumeEvent)
-        })
-
-        return () => {
-          JCL_Underlay_EventTypes.forEach((EventType:string) => {
-            View.removeEventListener(EventType, consumeEvent)
-          })
-        }
-      }, [])
-
+      useEventSwallower(UnderlayRef,JCL_Underlay_EventTypes)
+                                            // s. "shared Base Helpers"
       const handlePointerDown = useCallback((Event:Event) => {
         consumeEvent(Event)
         if (! Overlay.isModal) {
@@ -4967,9 +5188,8 @@ console.warn(ErrorToShow)
     OverlayIsOpen:        JCL_OverlayAction,
   }
 
-  const missingOverlayAction:JCL_OverlayAction = () => {
-    throwError('MissingArgument:function not in OverlayContext')
-  }
+  const missingOverlayAction:JCL_OverlayAction =
+    missingBaseActionFor('OverlayContext')          // see "shared Base Helpers"
 
   export const JCL_OverlayContext = createContext<JCL_OverlayContextValue>({
     openOverlay:         missingOverlayAction,
@@ -5024,10 +5244,7 @@ console.warn(ErrorToShow)
       function openDialog (Descriptor:Partial<JCL_Dialog> & Indexable):void {
         expectPlainObject('dialog descriptor', Descriptor)
 
-        Descriptor = { ...Descriptor }
-        Object.keys(Descriptor).forEach((Key:string) => {
-          if (Descriptor[Key] === undefined) { delete Descriptor[Key] }
-        })
+        Descriptor = strippedDescriptor(Descriptor)
 
         validateDialogDescriptor(Descriptor)
 
@@ -5182,12 +5399,7 @@ console.warn(ErrorToShow)
       }
 
       const DialogContext = useDialogContext()
-      Object.assign(DialogContext, DialogAPI)
-
-      if (APIRef != null) {
-        if (APIRef.current == null) { APIRef.current = {} }
-        Object.assign(APIRef.current, DialogAPI)
-      }
+      publishedBaseAPI(DialogContext,APIRef,DialogAPI)
 
     /**** render ****/
 
@@ -5234,15 +5446,12 @@ console.warn(ErrorToShow)
 
 /**** event types blocked by the modal layer ****/
 
+// the modal layer blocks everything the underlay blocks - plus the three
+// "start" events which the underlay deliberately lets through
+
   const JCL_ModalLayer_EventTypes = [
-    'click', 'dblclick',
-    'mousedown', 'mouseup', 'mousemove', 'mouseover', 'mouseout',
-    'mouseenter', 'mouseleave',
-    'touchstart', 'touchend', 'touchmove', 'touchcancel',
-    'pointerdown', 'pointerup', 'pointermove', 'pointerover', 'pointerout',
-    'pointerenter', 'pointerleave', 'pointercancel',
-    'keydown', 'keyup', 'keypress',
-    'wheel', 'contextmenu', 'focus', 'blur',
+    ...JCL_Underlay_EventTypes,
+    'mousedown', 'touchstart', 'pointerdown',
   ]
 
 /**** JCL_ModalLayer ****/
@@ -5251,20 +5460,8 @@ console.warn(ErrorToShow)
     return safelyRendered(() => {
       const ModalLayerRef = useRef<HTMLDivElement>()
 
-      useEffect(() => {
-        const View = ModalLayerRef.current as HTMLElement
-        if (View == null) { return }
-
-        JCL_ModalLayer_EventTypes.forEach((EventType:string) => {
-          View.addEventListener(EventType, consumeEvent)
-        })
-        return () => {
-          JCL_ModalLayer_EventTypes.forEach((EventType:string) => {
-            View.removeEventListener(EventType, consumeEvent)
-          })
-        }
-      }, [])
-
+      useEventSwallower(ModalLayerRef,JCL_ModalLayer_EventTypes)
+                                            // s. "shared Base Helpers"
       return createPortal(
         html`<div class="jcl-modal-layer" ref=${ModalLayerRef} aria-hidden="true"/>`,
         document.body
@@ -5275,14 +5472,8 @@ console.warn(ErrorToShow)
 //                    JCL_DialogView (internal component)                     //
 //----------------------------------------------------------------------------//
 
-/**** built-in translations for dialog UI ****/
-
-  _extendL10nDictionary('en', { 'jcl.dialog.close':'Close' })
-  _extendL10nDictionary('de', { 'jcl.dialog.close':'Schließen' })
-  _extendL10nDictionary('fr', { 'jcl.dialog.close':'Fermer' })
-  _extendL10nDictionary('es', { 'jcl.dialog.close':'Cerrar' })
-  _extendL10nDictionary('it', { 'jcl.dialog.close':'Chiudi' })
-  _extendL10nDictionary('pt', { 'jcl.dialog.close':'Fechar' })
+// the built-in translations for the dialog UI ('jcl.dialog.close') are
+// registered together with those of overlays - see "OverlayBase"
 
 /**** JCL_DialogView ****/
 
@@ -5595,7 +5786,7 @@ console.warn(ErrorToShow)
   type JCL_DialogAction = (...Args:any[]) => any
 
   export type JCL_DialogContextValue = {
-    DialogName?:        JCL_Name,                     // only set within a dialog
+    DialogName?:        JCL_Name,                    // only set within a dialog
     openDialog:         JCL_DialogAction,
     closeDialog:        JCL_DialogAction,
     closeAllDialogs:    JCL_DialogAction,
@@ -5605,9 +5796,8 @@ console.warn(ErrorToShow)
     bringDialogToFront: JCL_DialogAction,
   }
 
-  const missingDialogAction:JCL_DialogAction = () => {
-    throwError('MissingArgument:function not in DialogContext')
-  }
+  const missingDialogAction:JCL_DialogAction =
+    missingBaseActionFor('DialogContext')           // see "shared Base Helpers"
 
   export const JCL_DialogContext = createContext<JCL_DialogContextValue>({
     openDialog:        missingDialogAction,
@@ -5663,10 +5853,7 @@ console.warn(ErrorToShow)
       function showToast (Descriptor:JCL_Toast & Indexable):JCL_Name {
         expectPlainObject('toast descriptor', Descriptor)
 
-        Descriptor = { ...Descriptor }
-        Object.keys(Descriptor).forEach((Key:string) => {
-          if (Descriptor[Key] === undefined) { delete Descriptor[Key] }
-        })
+        Descriptor = strippedDescriptor(Descriptor) as JCL_Toast & Indexable
 
         validateToastDescriptor(Descriptor)
 
@@ -5745,7 +5932,7 @@ console.warn(ErrorToShow)
         try {
           allowName          ('Name',Value.Name)
           expectFunction ('Renderer',Value.Renderer)
-          allowOrdinal   ('Duration',Value.Duration)     // "0" keeps the toast
+          allowOrdinal   ('Duration',Value.Duration)      // "0" keeps the toast
           allowFunction    ('onOpen',Value.onOpen)
           allowFunction   ('onClose',Value.onClose)
 
@@ -5768,12 +5955,7 @@ console.warn(ErrorToShow)
       }
 
       const ToastContext = useToastContext()
-      Object.assign(ToastContext, ToastAPI)             // referentially stable!
-
-      if (APIRef != null) {
-        if (APIRef.current == null) { APIRef.current = {} }
-        Object.assign(APIRef.current, ToastAPI)
-      }
+      publishedBaseAPI(ToastContext,APIRef,ToastAPI)
 
       return html`<${JCL_ToastContext.Provider} value=${ToastContext}>
         <div class="jcl-component toast-base ${Classes}" ...${PropSet.RestProps}>
@@ -5814,10 +5996,10 @@ console.warn(ErrorToShow)
 //                  JCL_renderedToasts (internal component)                   //
 //----------------------------------------------------------------------------//
 
-  // defined at module level (rather than within "ToastBase") to keep the
-  // component type stable - an inner function would be recreated upon every
-  // rerendering of its base, forcing Preact to unmount and remount all open
-  // toasts (which briefly hides them and restarts their animations)
+// defined at module level (rather than within "ToastBase") to keep the
+// component type stable - an inner function would be recreated upon every
+// rerendering of its base, forcing Preact to unmount and remount all open
+// toasts (which briefly hides them and restarts their animations)
 
   function JCL_renderedToasts (PropSet:Indexable):any {
     return safelyRendered(() => {
@@ -5851,7 +6033,7 @@ console.warn(ErrorToShow)
 
       const [ isHovered,setHovered ] = useState(false)
       const TimerRef                 = useRef<any>(undefined)
-      const TimerRunRef              = useRef(0)  // remounts the progress bar
+      const TimerRunRef              = useRef(0)    // remounts the progress bar
 
       function cancelTimer ():void {
         if (TimerRef.current != null) {
@@ -5867,12 +6049,12 @@ console.warn(ErrorToShow)
       }
 
       function _onMouseEnter ():void {
-        cancelTimer()                 // the progress bar just pauses (in CSS)
+        cancelTimer()                   // the progress bar just pauses (in CSS)
         setHovered(true)
       }
 
       function _onMouseLeave ():void {
-        TimerRunRef.current++       // restarts the progress bar from scratch
+        TimerRunRef.current++          // restarts the progress bar from scratch
         startTimer()
         setHovered(false)
       }
@@ -5909,7 +6091,7 @@ console.warn(ErrorToShow)
     }
 
     .jcl-toast-view {
-      position:relative;      /* anchors the "remaining time" progress bar */
+      position:relative;         /* anchors the "remaining time" progress bar */
       width:360px; max-width:calc(100vw - 32px);
       pointer-events:auto;
       animation:jcl-toast-in 0.2s ease;
@@ -5945,9 +6127,8 @@ console.warn(ErrorToShow)
     ToastIsOpen:    JCL_ToastAction,
   }
 
-  const missingToastAction:JCL_ToastAction = () => {
-    throwError('MissingArgument:function not in ToastContext')
-  }
+  const missingToastAction:JCL_ToastAction =
+    missingBaseActionFor('ToastContext')            // see "shared Base Helpers"
 
   export const JCL_ToastContext = createContext<JCL_ToastContextValue>({
     showToast:     missingToastAction,
@@ -5965,16 +6146,10 @@ console.warn(ErrorToShow)
 //         fullsized - occupies all available space for its contents          //
 //----------------------------------------------------------------------------//
 
-  export function fullsized (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-      const ContentList = PropSet.children
+/**** fullsized ****/
 
-      return html`<div class="jcl-component fullsized ${Classes}" ...${PropSet.RestProps}>
-        ${ContentList}
-      </>`
-    })
+  export function fullsized (PropSet:Indexable):any {
+    return renderedPlainLayout('fullsized',PropSet)
   }
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.fullsized',`
@@ -5992,15 +6167,7 @@ console.warn(ErrorToShow)
 //----------------------------------------------------------------------------//
 
   export function centered (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-      const ContentList = PropSet.children
-
-      return html`<div class="jcl-component centered ${Classes}" ...${PropSet.RestProps}>
-        ${ContentList}
-      </>`
-    })
+    return renderedPlainLayout('centered',PropSet)            // see "fullsized"
   }
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.centered',`
@@ -6019,17 +6186,7 @@ console.warn(ErrorToShow)
 //----------------------------------------------------------------------------//
 
   export function horizontal (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style) ?? ''
-        const Gap     = acceptableOrdinal (PropSet.Gap)   ?? 0
-      const ContentList = PropSet.children
-
-      return html`<div class="jcl-component horizontal ${Classes}"
-        style="gap:${Gap}px; ${Style}" ...${PropSet.RestProps}
-      >${ContentList}</>`
-    })
+    return renderedFlowLayout('horizontal',PropSet)           // see "fullsized"
   }
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.horizontal',`
@@ -6046,17 +6203,7 @@ console.warn(ErrorToShow)
 //----------------------------------------------------------------------------//
 
   export function vertical (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style) ?? ''
-        const Gap     = acceptableOrdinal (PropSet.Gap)   ?? 0
-      const ContentList = PropSet.children
-
-      return html`<div class="jcl-component vertical ${Classes}"
-        style="gap:${Gap}px; ${Style}" ...${PropSet.RestProps}
-      >${ContentList}</>`
-    })
+    return renderedFlowLayout('vertical',PropSet)             // see "fullsized"
   }
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.vertical',`
@@ -6211,7 +6358,38 @@ console.warn(ErrorToShow)
     .jcl-component.stacked > *:not(:first-child) {
       position:absolute; top:0px;
     }
-  `)//----------------------------------------------------------------------------//
+  `)
+
+/**** shared renderers for the simple layout components ****/
+
+// "renderedPlainLayout" serves "fullsized" and "centered",
+// "renderedFlowLayout" (with "Style" and "Gap") "horizontal" and "vertical"
+
+  function renderedPlainLayout (ClassName:string, PropSet:Indexable):any {
+    return safelyRendered(() => {
+      PropSet = parseablePropSet(PropSet)
+        const Classes = acceptableTextline(PropSet.Class) ?? ''
+      const ContentList = PropSet.children
+
+      return html`<div class="jcl-component ${ClassName} ${Classes}" ...${PropSet.RestProps}>
+        ${ContentList}
+      </>`
+    })
+  }
+
+  function renderedFlowLayout (ClassName:string, PropSet:Indexable):any {
+    return safelyRendered(() => {
+      PropSet = parseablePropSet(PropSet)
+        const Classes = acceptableTextline(PropSet.Class) ?? ''
+        const Style   = acceptableText    (PropSet.Style) ?? ''
+        const Gap     = acceptableOrdinal (PropSet.Gap)   ?? 0
+      const ContentList = PropSet.children
+
+      return html`<div class="jcl-component ${ClassName} ${Classes}"
+        style="gap:${Gap}px; ${Style}" ...${PropSet.RestProps}
+      >${ContentList}</>`
+    })
+  }//----------------------------------------------------------------------------//
 //              Dummy - a placeholder with optional fill pattern              //
 //----------------------------------------------------------------------------//
 
@@ -6428,7 +6606,7 @@ console.warn(ErrorToShow)
   }
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.textlineview',`
-    .jcl-component.textview {
+    .jcl-component.textlineview {
       height:30px;
       font-size:14px; line-height:30px;
       overflow:hidden; text-overflow:ellipsis;
@@ -6545,51 +6723,51 @@ console.warn(ErrorToShow)
 
 /**** loadMarkdownLibraries - loads "marked", "highlight.js" and plug-ins ****/
 
-  let MarkdownLibraries:Promise<void>|undefined
+  const _MarkdownLoader = memoizedLoader(async () => {
+    const [
+      MarkedModule, markedKatexModule, markedHighlightModule, hljsModule
+    ] = await Promise.all([
+      loadedLibrary('marked'),
+      loadedLibrary('marked-katex-extension'),
+      loadedLibrary('marked-highlight'),
+      loadedLibrary('highlight.js/lib/core')
+    ])
+    Marked          = MarkedModule.Marked
+    markedKatex     = markedKatexModule.default ?? markedKatexModule
+    markedHighlight = markedHighlightModule.markedHighlight
+    hljs            = hljsModule.default ?? hljsModule
 
-  export function loadMarkdownLibraries ():Promise<void> {
-    return MarkdownLibraries ??= (async () => {
-      const [
-        MarkedModule, markedKatexModule, markedHighlightModule, hljsModule
-      ] = await Promise.all([
-        loadedLibrary('marked'),
-        loadedLibrary('marked-katex-extension'),
-        loadedLibrary('marked-highlight'),
-        loadedLibrary('highlight.js/lib/core')
-      ])
-      Marked          = MarkedModule.Marked
-      markedKatex     = markedKatexModule.default ?? markedKatexModule
-      markedHighlight = markedHighlightModule.markedHighlight
-      hljs            = hljsModule.default ?? hljsModule
+    const LanguageList = [                      // 'python' is not registered
+      'css','javascript','java','json','typescript','xml'
+    ]
+    const LanguageModules = await Promise.all(LanguageList.map(
+      (Language:string) => loadedLibrary('highlight.js/lib/languages/' + Language)
+    ))
+    LanguageList.forEach((Language:string, Index:number) => {
+      hljs.registerLanguage(Language, LanguageModules[Index].default)
+    })
 
-      const LanguageList = [                      // 'python' is not registered
-        'css','javascript','java','json','typescript','xml'
-      ]
-      const LanguageModules = await Promise.all(LanguageList.map(
-        (Language:string) => loadedLibrary('highlight.js/lib/languages/' + Language)
-      ))
-      LanguageList.forEach((Language:string, Index:number) => {
-        hljs.registerLanguage(Language, LanguageModules[Index].default)
+    MarkdownRenderer = new Marked()
+      MarkdownRenderer.setOptions({
+        gfm:true, breaks:true, pedantic:false,
       })
 
-      MarkdownRenderer = new Marked()
-        MarkdownRenderer.setOptions({
-          gfm:true, breaks:true, pedantic:false,
-        })
+      MarkdownRenderer.use(markedKatex({
+        throwOnError:false,
+      }))
 
-        MarkdownRenderer.use(markedKatex({
-          throwOnError:false,
-        }))
+      MarkdownRenderer.use(markedHighlight({
+        emptyLangClass:'hljs',
+        langPrefix:    'hljs language-',
+        highlight(Code:unknown, Language:unknown) {
+          const lang = hljs.getLanguage(Language as string) ? Language as string : 'plaintext'
+          return hljs.highlight(Code as string, { language:lang }).value
+        }
+      }))
+  })
 
-        MarkdownRenderer.use(markedHighlight({
-          emptyLangClass:'hljs',
-          langPrefix:    'hljs language-',
-          highlight(Code:unknown, Language:unknown) {
-            const lang = hljs.getLanguage(Language as string) ? Language as string : 'plaintext'
-            return hljs.highlight(Code as string, { language:lang }).value
-          }
-        }))
-    })()
+  export function loadMarkdownLibraries ():Promise<void> {
+    return _MarkdownLoader()
   }
 
 /**** MarkdownRenderer (remains undefined until its libraries were loaded) ****/
@@ -7241,11 +7419,7 @@ console.warn(ErrorToShow)
         const onClick      = acceptableFunction(PropSet.onClick)
 
       Value = Value ?? JCL_empty
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
       const checked       = (actualValue == true)
       const indeterminate = (actualValue == null) || ValueIsSpecial(Value)
@@ -7302,11 +7476,7 @@ console.warn(ErrorToShow)
         const onClick      = acceptableFunction(PropSet.onClick)
 
       Value = Value ?? JCL_empty
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
       const checked = (actualValue == true)
 
@@ -7439,60 +7609,29 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef<any>(undefined)
-
-      let ValueToShow = (ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
-
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(
+        ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty
       )
 
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-        executeCallback('nativeSlider callback "onInput"', onInput, Event)
-
-        let Value = shownValue.current = parseFloat(Event.target.value)
-        executeCallback(
-          'nativeSlider callback "onValueInput"', onValueInput, Value,Event
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeSlider', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur,
+        processedInput:(Event:any) => (
+          shownValue.current = parseFloat(Event.target.value)
         )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeSlider callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let HashmarkList:any = '', HashmarkId
-      if ((Hashmarks != null) && (Hashmarks.length > 0)) {
-        HashmarkId = internalId + '-Hashmarks'
-
-        HashmarkList = html`\n<datalist id=${HashmarkId}>
-          ${Hashmarks.map((Item:string) => {
-            const Value = Item.replace(/:.*$/,'').trim()
-            const Label = Item.replace(/^[^:]+:/,'').trim()
-
-            return html`<option value=${Value}>${Label}</option>`
-          })}
-        </datalist>`
-      }
+      const { SuggestionId:HashmarkId, SuggestionList:HashmarkList } = useDatalist(
+        Hashmarks, (Item:string) => {
+          const { Value,Label } = parsedOption(Item)
+          return html`<option value=${Value}>${Label}</option>`
+        }
+      )
 
       return html`<div class="jcl-component native-slider ${Classes}" style=${Style}>
         <input type="range" ref=${ViewRef} disabled=${actualDisabling}
@@ -7542,56 +7681,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeTextlineInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeTextlineInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeTextlineInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeTextlineInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="text" class="jcl-component native-textline-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -7646,46 +7748,17 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativePasswordInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativePasswordInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativePasswordInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativePasswordInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
-
-      const rerender = useRerenderer()
 
       return html`<input type="password" class="jcl-component native-password-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -7750,60 +7823,33 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef<any>(undefined)
-
-      let ValueToShow = (ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        if ((Digits != null) && ValueIsNumber(ValueToShow)) {
-          ValueToShow = ValueToShow.toFixed(Digits)     // rounds to "Digits" digits
-          if (withoutTrailingZeros) { ValueToShow = parseFloat(ValueToShow) }
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(
+        ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty,
+        (Value:any) => {
+          if ((Digits != null) && ValueIsNumber(Value)) {
+            Value = Value.toFixed(Digits)               // rounds to "Digits" digits
+            if (withoutTrailingZeros) { Value = parseFloat(Value) }
+          }
+          return Value
         }
-        shownValue.current = ValueToShow
-      }
-
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
       )
 
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-        executeCallback('nativeNumberInput callback "onInput"', onInput, Event)
-
-        const enteredValue = parseFloat(Event.target.value)
-        shownValue.current = (isNaN(enteredValue) ? undefined : enteredValue)
-        executeCallback(
-          'nativeNumberInput callback "onValueInput"', onValueInput, shownValue.current,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeNumberInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeNumberInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur,
+        processedInput:(Event:any) => {
+          const enteredValue = parseFloat(Event.target.value)
+          shownValue.current = (isNaN(enteredValue) ? undefined : enteredValue)
+          return shownValue.current
+        }
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="number" ref=${ViewRef}
         class="jcl-component native-number-input ${Classes} ${invalid ? 'invalid' : ''}"
@@ -7860,56 +7906,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeEMailAddressInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeEMailAddressInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeEMailAddressInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeEMailAddressInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="email" class="jcl-component native-emailaddress-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -7964,56 +7973,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativePhoneNumberInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativePhoneNumberInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()               // because "ValueToShow" may now be different
-        executeCallback('nativePhoneNumberInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativePhoneNumberInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="tel" class="jcl-component native-phonenumber-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -8068,56 +8040,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeURLInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeURLInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeURLInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeURLInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="url" class="jcl-component native-url-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -8154,7 +8089,7 @@ console.warn(ErrorToShow)
 /**** nativeTimeInput ****/
 
   export const JCL_TimePattern = '([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?'
-  export const JCL_TimeRegExp  = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
+  export const JCL_TimeRegExp  = RegExpForPattern(JCL_TimePattern)
 
   export function ValueIsTime (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_TimeRegExp)
@@ -8177,56 +8112,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeTimeInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeTimeInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeTimeInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeTimeInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="time" class="jcl-component native-time-input ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
@@ -8259,7 +8157,7 @@ console.warn(ErrorToShow)
 /**** nativeDateTimeInput ****/
 
   export const JCL_DateTimePattern = '\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?'
-  export const JCL_DateTimeRegExp  = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
+  export const JCL_DateTimeRegExp  = RegExpForPattern(JCL_DateTimePattern)
 
   export function ValueIsDateTime (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_DateTimeRegExp)
@@ -8282,56 +8180,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeDateTimeInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeDateTimeInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeDateTimeInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeDateTimeInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="datetime-local" class="jcl-component native-datetime-input ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
@@ -8364,7 +8225,7 @@ console.warn(ErrorToShow)
 /**** nativeDateInput ****/
 
   export const JCL_DatePattern = '\\d{4}-\\d{2}-\\d{2}'
-  export const JCL_DateRegExp  = /^\d{4}-\d{2}-\d{2}$/
+  export const JCL_DateRegExp  = RegExpForPattern(JCL_DatePattern)
 
   export function ValueIsDate (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_DateRegExp)
@@ -8386,56 +8247,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeDateInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeDateInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeDateInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeDateInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="date" class="jcl-component native-date-input ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum}
@@ -8468,7 +8292,7 @@ console.warn(ErrorToShow)
 /**** nativeWeekInput ****/
 
   export const JCL_WeekPattern = '\\d{4}-W\\d{2}'
-  export const JCL_WeekRegExp  = /^\d{4}-W\d{2}$/
+  export const JCL_WeekRegExp  = RegExpForPattern(JCL_WeekPattern)
 
   export function ValueIsWeek (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_WeekRegExp)
@@ -8490,56 +8314,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeWeekInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeWeekInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeWeekInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeWeekInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="week" class="jcl-component native-week-input ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum}
@@ -8572,7 +8359,7 @@ console.warn(ErrorToShow)
 /**** nativeMonthInput ****/
 
   export const JCL_MonthPattern = '\\d{4}-\\d{2}'
-  export const JCL_MonthRegExp  = /^\d{4}-\d{2}$/
+  export const JCL_MonthRegExp  = RegExpForPattern(JCL_MonthPattern)
 
   export function ValueIsMonth (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_MonthRegExp)
@@ -8594,56 +8381,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeMonthInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeMonthInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeMonthInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeMonthInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="month" class="jcl-component native-month-input ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum}
@@ -8695,56 +8445,19 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeSearchInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeSearchInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeSearchInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeSearchInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="search" class="jcl-component native-search-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -8794,13 +8507,10 @@ console.warn(ErrorToShow)
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
+      const ValueToShow = (Value == null ? JCL_empty : Value)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
     /**** handle inputs ****/
 
@@ -8874,11 +8584,7 @@ console.warn(ErrorToShow)
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
     /**** handle inputs ****/
 
@@ -8896,15 +8602,7 @@ console.warn(ErrorToShow)
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId   = internalId + '-Suggestions'
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       if (minWidth == null) {
         minWidth = 40 + ((Suggestions != null) && (Suggestions.length > 0) ? 20 : 0)
@@ -8950,11 +8648,8 @@ console.warn(ErrorToShow)
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,Value === JCL_empty ? Placeholder : Value.Placeholder,disabled || Value.disabled ]
-        : [ Value,Placeholder,disabled ]
-      )
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(Value,disabled,Placeholder)
 
     /**** handle inputs ****/
 
@@ -8974,11 +8669,8 @@ console.warn(ErrorToShow)
     // (a disabled, initially selected entry without any value of its own)
 
       const hasMatch = Options.some((Option:string) => {
-        let   OptionValue = Option.replace(/:.*$/,'').trim()
-        const OptionLabel = Option.replace(/^[^:]*:/,'').trim()
-        if (/^[-]+$/.test(OptionLabel)) { return false }
-        if (OptionValue === Option)     { OptionValue = OptionValue.replace(/^-/,'') }
-        return (OptionValue === actualValue)
+        const { Value:OptionValue, isRuler } = parsedOption(Option)
+        return (! isRuler && (OptionValue === actualValue))
       })
 
     /**** actual rendering ****/
@@ -8986,19 +8678,16 @@ console.warn(ErrorToShow)
       return html`<select class="jcl-component native-dropdown ${Classes}"
         disabled=${actualDisabling} onInput=${_onInput} ...${PropSet.RestProps}
       >${hasMatch ? '' : html`<option value="" selected disabled>${actualPlaceholder}</option>`}${Options.map((Option:string) => {
-          let   OptionValue = Option.replace(/:.*$/,'').trim()
-          let   OptionLabel = Option.replace(/^[^:]*:/,'').trim() // allows for empty values
-          const disabled    = (OptionLabel[0] === '-')
-          if (/^[-]+$/.test(OptionLabel)) {
-            return html`<hr/>`
-          } else {
-            if (OptionValue === Option) { OptionValue = OptionValue.replace(/^-/,'') }
-            if (disabled)               { OptionLabel = OptionLabel.replace(/^-/,'') }
-
-            return html`<option value=${OptionValue}
-              selected=${OptionValue === actualValue} disabled=${disabled}
-            >${OptionLabel}</option>`
-          }
+          const {
+            Value:OptionValue, Label:OptionLabel, disabled,isRuler
+          } = parsedOption(Option)                 // allows for empty values
+          return (
+            isRuler
+            ? html`<hr/>`
+            : html`<option value=${OptionValue}
+                selected=${OptionValue === actualValue} disabled=${disabled}
+              >${OptionLabel}</option>`
+          )
         }
       )}</select>`
     })
@@ -9042,46 +8731,18 @@ console.warn(ErrorToShow)
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('nativeTextInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'nativeTextInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('nativeTextInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'nativeTextInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const rerender = useRerenderer()
       const uniqueId = useId()
 
       return html`<textarea class="jcl-component native-text-input ${Classes} ${invalid ? 'invalid' : ''}"
@@ -9201,11 +8862,7 @@ console.warn(ErrorToShow)
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
     /**** handle inputs ****/
 
@@ -9213,11 +8870,11 @@ console.warn(ErrorToShow)
         consumeEvent(Event)
         if (actualDisabling == true) { return }
 
-        executeCallback('nativePseudoDropDown callback "onInput"', onInput, Event)
+        executeCallback('legacyPseudoDropDown callback "onInput"', onInput, Event)
 
         let Value = Event.target.value
         executeCallback(
-          'nativePseudoDropDown callback "onValueInput"', onValueInput, Value,Event
+          'legacyPseudoDropDown callback "onValueInput"', onValueInput, Value,Event
         )
       }, [ actualDisabling, onInput,onValueInput ])
 
@@ -9227,11 +8884,8 @@ console.warn(ErrorToShow)
     //  which could then no longer be selected explicitly)
 
       const hasMatch = Options.some((Option:string) => {
-        let   OptionValue = Option.replace(/:.*$/,'').trim()
-        const OptionLabel = Option.replace(/^[^:]*:/,'').trim()
-        if (/^[-]+$/.test(OptionLabel)) { return false }
-        if (OptionValue === Option)     { OptionValue = OptionValue.replace(/^-/,'') }
-        return (OptionValue === actualValue)
+        const { Value:OptionValue, isRuler } = parsedOption(Option)
+        return (! isRuler && (OptionValue === actualValue))
       })
 
     /**** actual rendering ****/
@@ -9247,19 +8901,16 @@ console.warn(ErrorToShow)
         <select
           disabled=${actualDisabling} onInput=${_onInput} ...${PropSet.RestProps}
         >${hasMatch ? '' : html`<option hidden selected value=""></option>`}${Options.map((Option:string) => {
-            let   OptionValue = Option.replace(/:.*$/,'').trim()
-            let   OptionLabel = Option.replace(/^[^:]*:/,'').trim() // allows for empty values
-            const disabled    = (OptionLabel[0] === '-')
-            if (/^[-]+$/.test(OptionLabel)) {
-              return html`<hr/>`
-            } else {
-              if (OptionValue === Option) { OptionValue = OptionValue.replace(/^-/,'') }
-              if (disabled)               { OptionLabel = OptionLabel.replace(/^-/,'') }
-
-              return html`<option value=${OptionValue}
-                selected=${OptionValue === actualValue} disabled=${disabled}
-              >${OptionLabel}</option>`
-            }
+            const {
+              Value:OptionValue, Label:OptionLabel, disabled,isRuler
+            } = parsedOption(Option)               // allows for empty values
+            return (
+              isRuler
+              ? html`<hr/>`
+              : html`<option value=${OptionValue}
+                  selected=${OptionValue === actualValue} disabled=${disabled}
+                >${OptionLabel}</option>`
+            )
           }
         )}</select>
       </label>`
@@ -9417,22 +9068,15 @@ console.warn(ErrorToShow)
 
     /**** allow setting "activeIndex" externally and changing it internally ****/
 
-      const externalActiveIndex = useRef(activeIndex ?? 0)
-      const internalActiveIndex = useRef(activeIndex ?? 0)
-
-      if ((activeIndex != null) && (activeIndex !== externalActiveIndex.current)) {
-        internalActiveIndex.current = activeIndex
-        externalActiveIndex.current = activeIndex
-      } else {
-        activeIndex = internalActiveIndex.current
-      }
+      const activeIndexRef = useHybridValue(activeIndex,0)
+      activeIndex = activeIndexRef.current
 
     /**** tab activation (by click or keyboard) ****/
 
       const activateTab = useCallback((Index:JCL_Ordinal, Event:Event):void => {
         if (disabled) { return consumingEvent(Event) }
 
-        internalActiveIndex.current = Index
+        activeIndexRef.current = Index
         rerender()
 
         executeCallback('TabStrip callback "onActivationChange"', onActivationChange, Index)
@@ -9530,15 +9174,8 @@ console.warn(ErrorToShow)
 
     /**** allow setting "expanded" externally and changing it internally ****/
 
-      const externalExpansion = useRef(expanded ?? false)
-      const internalExpansion = useRef(expanded ?? false)
-
-      if ((expanded != null) && (expanded !== externalExpansion.current)) {
-        internalExpansion.current = expanded
-        externalExpansion.current = expanded
-      } else {
-        expanded = internalExpansion.current
-      }
+      const ExpansionRef = useHybridValue(expanded,false)
+      expanded = ExpansionRef.current
 
     /**** toggle expansion (by click or keyboard) ****/
 
@@ -9546,8 +9183,8 @@ console.warn(ErrorToShow)
         consumeEvent(Event)
         if (disabled) { return }
 
-        const newExpansion = ! internalExpansion.current
-        internalExpansion.current = newExpansion
+        const newExpansion = ! ExpansionRef.current
+        ExpansionRef.current = newExpansion
         rerender()
 
         executeCallback('AccordionFold callback "onExpansionChange"', onExpansionChange, newExpansion)
@@ -10064,27 +9701,21 @@ console.warn(ErrorToShow)
 
 /**** Default_KeyOfNestedListItem ****/
 
+// uses the very same key scheme (and WeakMap) as "legacyFlatListView"
+
   function Default_KeyOfNestedListItem (Item:Indexable):JCL_NestedListItemKey {
-    if (KeyMap.has(Item)) {
-      return ''+KeyMap.get(Item)
-    } else {
-      KeyCounter++
-      KeyMap.set(Item,KeyCounter)
-      return ''+KeyCounter
-    }
+    return Default_KeyOfFlatListItem(Item,[],0)  // "List"/"Index" are unused
   }
 
 /**** Default_NestedListItemRenderer ****/
+
+// renders exactly like the default item renderer of "legacyFlatListView"
 
   function Default_NestedListItemRenderer (
     Item:Indexable, isSelected:boolean = false, isPlain:boolean = false,
     isExpanded:boolean = false, InsertionDirection:''|'before'|'after' = ''
   ):any {
-    if (typeof Item.toHTML === 'function') {
-      return html`<div class="default" dangerouslySetInnerHTML=${{ __html:Item.toHTML() }}/>`
-    } else {
-      return html`<div class="default">${''+Item}</>`
-    }
+    return Default_FlatListItemRenderer(Item,[],0)  // "List"/"Index" are unused
   }
 
   export function legacyNestedListView (PropSet:Indexable):any {
@@ -10560,11 +10191,7 @@ console.warn(ErrorToShow)
 
     /**** explicit rerendering ****/
 
-      const [ State,setState ] = useState({ Rendering:0 })
-
-      function rerender ():void {
-        setState((oldState:Indexable) => ({ Rendering:oldState.Rendering+1 }))
-      }
+      const rerender = useRerenderer()
 
       const ListContext = {
         List, ListIsSortable, ListIsDraggable, KeyOfListItem, ListItemRenderer,
@@ -10599,9 +10226,7 @@ console.warn(ErrorToShow)
              onDrop=${ListIsSortable  ? onDrop      : undefined}
         ...${PropSet.RestProps}
       >
-        <${NLV_ListView} List=${List}
-          ListContext=${ListContext} Rendering=${State.Rendering}
-        />
+        <${NLV_ListView} List=${List} ListContext=${ListContext}/>
       </>`
     })
   }
@@ -10707,11 +10332,11 @@ console.warn(ErrorToShow)
 
   function NLV_ListView (PropSet:Indexable):any {
     return safelyRendered(() => {
-      const { List, ListContext, Rendering } = PropSet
+      const { List, ListContext } = PropSet
 
       return html`<div class="listview" role="group">${
         List.map((ListItem:Indexable) => html`<${NLV_ListItemView}
-          ListItem=${ListItem} ListContext=${ListContext} Rendering=${Rendering}
+          ListItem=${ListItem} ListContext=${ListContext}
         />`)
       }</>`
     })
@@ -10721,7 +10346,7 @@ console.warn(ErrorToShow)
 
   function NLV_ListItemView (PropSet:Indexable):any {
     return safelyRendered(() => {
-      const { ListItem, ListContext, Rendering } = PropSet
+      const { ListItem, ListContext } = PropSet
       const { KeyOfListItem, ContentOfListItem } = ListContext
 
       const innerList = executedCallback(
@@ -10805,9 +10430,7 @@ console.warn(ErrorToShow)
       const Contents = (
         ! ListItemIsPlain && ListItemIsExpanded &&
         ! (ListContext.State.dragging && ListItemIsSelected)
-        ? html`<${NLV_ListView} List=${innerList}
-            ListContext=${ListContext} Rendering=${Rendering}
-          />`
+        ? html`<${NLV_ListView} List=${innerList} ListContext=${ListContext}/>`
         : ''
       )
 
@@ -10854,14 +10477,12 @@ console.warn(ErrorToShow)
 
   let Squire:any, DOMPurify:any    // filled in by "loadRichTextEditorLibraries"
 
-  function loadRichTextEditorLibraries ():Promise<void> {
-    return Promise.all([
-      loadedLibrary('squire-rte'), loadedLibrary('dompurify')
-    ]).then(([ SquireModule,DOMPurifyModule ]) => {
-      Squire    = SquireModule.Squire       ?? SquireModule.default
-      DOMPurify = DOMPurifyModule.default   ?? DOMPurifyModule
-    })
-  }
+  const loadRichTextEditorLibraries = memoizedLoader(() => Promise.all([
+    loadedLibrary('squire-rte'), loadedLibrary('dompurify')
+  ]).then(([ SquireModule,DOMPurifyModule ]) => {
+    Squire    = SquireModule.Squire       ?? SquireModule.default
+    DOMPurify = DOMPurifyModule.default   ?? DOMPurifyModule
+  }))
 
   export type JCL_RichTextEditorSelection = {
     Text:string, isCollapsed:boolean, Path:string
@@ -11005,6 +10626,54 @@ console.warn(ErrorToShow)
 
 
 
+/**** shared helpers (also used outside the mounting closure) ****/
+
+  function reflectEmptinessOf (Container:any, EditorRoot:any):void {
+    Container.classList.toggle('empty',EditorRoot.textContent === '')
+  }
+
+  function appliedHTMLValue (
+    Editor:any, EditorRoot:any, Container:any, Value:string
+  ):string {                  // installs "Value", returns its normalised form
+    Editor.setHTML(Value)
+    restoreCustomComponentsWithin(EditorRoot)        // see "HTML Sanitisation"
+    reflectEmptinessOf(Container,EditorRoot)
+    return Editor.getHTML()
+  }
+
+  function setCSSSize (Style:any, Dimension:string, Value:string):void {
+    switch (true) {
+      case (Value === ''):
+        Style[Dimension] = ''
+        break
+      case /^\d+$/.test(Value):                      // plain numbers mean "px"
+        Style[Dimension] = Value + 'px'
+        break
+      default:                                  // any CSS length or percentage
+        Style[Dimension] = Value
+    }
+  }
+
+  function FormatTogglesFor (Editor:any):Indexable {
+    const ToggleSpecs:Indexable = {          // Tag, "set" and "remove" methods
+      toggleBold:         [ 'B',  'bold',         'removeBold' ],
+      toggleItalic:       [ 'I',  'italic',       'removeItalic' ],
+      toggleUnderline:    [ 'U',  'underline',    'removeUnderline' ],
+      toggleStrikethrough:[ 'S',  'strikethrough','removeStrikethrough' ],
+      toggleSubscript:    [ 'SUB','subscript',    'removeSubscript' ],
+      toggleSuperscript:  [ 'SUP','superscript',  'removeSuperscript' ],
+    }
+
+    const Toggles:Indexable = {}
+      Object.keys(ToggleSpecs).forEach((Name:string) => {
+        const [ Tag,set,remove ] = ToggleSpecs[Name]
+        Toggles[Name] = () => (
+          Editor.hasFormat(Tag) ? Editor[remove]() : Editor[set]()
+        )
+      })
+    return Toggles
+  }
+
   export function legacyRichTextEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
       const LibrariesAreReady = useLibraries(loadRichTextEditorLibraries)
@@ -11064,16 +10733,15 @@ console.warn(ErrorToShow)
         })
         EditorRef.current = Editor
 
-        Editor.setHTML(internalValue.current)
-        restoreCustomComponentsWithin(EditorRoot)   // see "HTML Sanitisation"
-        internalValue.current = Editor.getHTML()          // normalised form
+        internalValue.current = appliedHTMLValue(
+          Editor, EditorRoot, Container, internalValue.current
+        )
 
       /**** placeholder display ****/
 
         function reflectEmptiness ():void {
-          Container.classList.toggle('empty',EditorRoot.textContent === '')
+          reflectEmptinessOf(Container,EditorRoot)
         }
-        reflectEmptiness()
 
       /**** report value, selection and undo state changes ****/
 
@@ -11214,11 +10882,7 @@ console.warn(ErrorToShow)
           ]
           if (nextCell != null) {
             Event.preventDefault()
-
-            const Range = document.createRange()
-              Range.selectNodeContents(nextCell as any)
-              Range.collapse(true)
-            Editor.setSelection(Range)
+            placeCursorInto(nextCell)             // see note "Table Support"
           }
         })
 
@@ -11425,18 +11089,9 @@ console.warn(ErrorToShow)
 
           if (Width != null) {
             const WidthValue = String(Width).trim()
-            switch (true) {
-              case (WidthValue === ''):                  // back to natural size
-                Image.style.width = ''; Image.style.height = ''
-                break
-              case /^\d+$/.test(WidthValue):          // plain numbers mean "px"
-                Image.style.width  = WidthValue + 'px'
-                Image.style.height = 'auto'
-                break
-              default:                                  // any CSS length or "%"
-                Image.style.width = WidthValue; Image.style.height = 'auto'
-            }
-          }
+            setCSSSize(Image.style,'width',WidthValue)
+            Image.style.height = (WidthValue === '' ? '' : 'auto')
+          }             // an empty value returns the image to its natural size
 
           currentImage = Image
         }
@@ -11497,18 +11152,8 @@ console.warn(ErrorToShow)
         function updatedIFrameSize (
           IFrame:any, Dimension:string, Value?:string
         ):void {
-          if (Value == null) { return }
-          const SizeValue = String(Value).trim()
-          switch (true) {
-            case (SizeValue === ''):
-              IFrame.style[Dimension] = ''
-              break
-            case /^\d+$/.test(SizeValue):             // plain numbers mean "px"
-              IFrame.style[Dimension] = SizeValue + 'px'
-              break
-            default:                                    // any CSS length or "%"
-              IFrame.style[Dimension] = SizeValue
-          }
+          if (Value == null) { return }              // "undefined" leaves as-is
+          setCSSSize(IFrame.style,Dimension,String(Value).trim())
         }
 
         function updateIFrameWith (OptionSet:Indexable):void {
@@ -11654,10 +11299,9 @@ console.warn(ErrorToShow)
           getValue:() => Editor.getHTML(),
           setValue:(newValue:string):void => {
             expectText('editor value',newValue)
-            Editor.setHTML(newValue)
-            restoreCustomComponentsWithin(EditorRootRef.current)
-            internalValue.current = Editor.getHTML()
-            reflectEmptiness()
+            internalValue.current = appliedHTMLValue(
+              Editor, EditorRoot, Container, newValue
+            )
           },
           insertHTML:(HTML:string):void => {
             expectText('HTML to insert',HTML)
@@ -11703,30 +11347,7 @@ console.warn(ErrorToShow)
           hasFormat:     (Tag:string) => Editor.hasFormat(Tag.toUpperCase()),
           FontInfo:      () => Editor.getFontInfo(),
 
-          toggleBold:() => (
-            Editor.hasFormat('B') ? Editor.removeBold() : Editor.bold()
-          ),
-          toggleItalic:() => (
-            Editor.hasFormat('I') ? Editor.removeItalic() : Editor.italic()
-          ),
-          toggleUnderline:() => (
-            Editor.hasFormat('U') ? Editor.removeUnderline() : Editor.underline()
-          ),
-          toggleStrikethrough:() => (
-            Editor.hasFormat('S')
-              ? Editor.removeStrikethrough()
-              : Editor.strikethrough()
-          ),
-          toggleSubscript:() => (
-            Editor.hasFormat('SUB')
-              ? Editor.removeSubscript()
-              : Editor.subscript()
-          ),
-          toggleSuperscript:() => (
-            Editor.hasFormat('SUP')
-              ? Editor.removeSuperscript()
-              : Editor.superscript()
-          ),
+          ...FormatTogglesFor(Editor),  // toggleBold ... toggleSuperscript
           toggleCode:() => Editor.toggleCode(),
 
           setFontFace:(Name?:string) => Editor.setFontFace(Name ?? null),
@@ -11801,11 +11422,9 @@ console.warn(ErrorToShow)
 
         const visibleValue = Editor.getHTML()
         if (internalValue.current !== visibleValue) {
-          Editor.setHTML(internalValue.current)
-          restoreCustomComponentsWithin(EditorRootRef.current)
-          internalValue.current = Editor.getHTML()            // normalised form
-          ContainerRef.current.classList.toggle(
-            'empty', EditorRootRef.current.textContent === ''
+          internalValue.current = appliedHTMLValue(
+            Editor, EditorRootRef.current, ContainerRef.current,
+            internalValue.current
           )
         }
       })
@@ -11931,8 +11550,7 @@ console.warn(ErrorToShow)
       undoChange:any, redoChange:any
   let setDiagnostics:any, lintGutter:any, linter:any      // @codemirror/lint
 
-  function loadCodeEditorLibraries ():Promise<void> {
-    return Promise.all([
+  const loadCodeEditorLibraries = memoizedLoader(() => Promise.all([
       loadedLibrary('@codemirror/state'),
       loadedLibrary('@codemirror/view'),
       loadedLibrary('@codemirror/language'),
@@ -11967,7 +11585,7 @@ console.warn(ErrorToShow)
       lintGutter            = LintModule.lintGutter
       linter                = LintModule.linter
     })
-  }
+  )
 
   export type JCL_CodeEditorSeverity = 'error'|'warning'|'info'
   export type JCL_CodeEditorError    = {
@@ -11995,36 +11613,31 @@ console.warn(ErrorToShow)
 
 /**** built-in languages (lazily loaded on first use) ****/
 
-  registerCodeEditorLanguage('javascript', async () => (
-    (await import('@codemirror/lang-javascript')).javascript()
-  ))
-  registerCodeEditorLanguage('typescript', async () => (
-    (await import('@codemirror/lang-javascript')).javascript({ typescript:true })
-  ))
-  registerCodeEditorLanguage('html', async () => (
-    (await import('@codemirror/lang-html')).html()
-  ))
-  registerCodeEditorLanguage('css', async () => (
-    (await import('@codemirror/lang-css')).css()
-  ))
-  registerCodeEditorLanguage('json', async () => (
-    (await import('@codemirror/lang-json')).json()
-  ))
-  registerCodeEditorLanguage('markdown', async () => (
-    (await import('@codemirror/lang-markdown')).markdown()
-  ))
-  registerCodeEditorLanguage('python', async () => (
-    (await import('@codemirror/lang-python')).python()
-  ))
-  registerCodeEditorLanguage('xml', async () => (
-    (await import('@codemirror/lang-xml')).xml()
-  ))
-  registerCodeEditorLanguage('java', async () => (
-    (await import('@codemirror/lang-java')).java()
-  ))
-  registerCodeEditorLanguage('yaml', async () => (
-    (await import('@codemirror/lang-yaml')).yaml()
-  ))
+// each entry names its module, the factory export to call and (optionally)
+// the factory arguments - computed specifiers are fine here, since JCL is
+// used without any build step and "loadedLibrary" caches every module
+
+  const _builtInLanguages:Indexable = {
+    javascript:[ '@codemirror/lang-javascript','javascript' ],
+    typescript:[ '@codemirror/lang-javascript','javascript', { typescript:true } ],
+    html:      [ '@codemirror/lang-html',      'html' ],
+    css:       [ '@codemirror/lang-css',       'css' ],
+    json:      [ '@codemirror/lang-json',      'json' ],
+    markdown:  [ '@codemirror/lang-markdown',  'markdown' ],
+    python:    [ '@codemirror/lang-python',    'python' ],
+    xml:       [ '@codemirror/lang-xml',       'xml' ],
+    java:      [ '@codemirror/lang-java',      'java' ],
+    yaml:      [ '@codemirror/lang-yaml',      'yaml' ],
+  }
+
+  Object.keys(_builtInLanguages).forEach((Language:string) => {
+    const [ Module,Factory,Options ] = _builtInLanguages[Language]
+    registerCodeEditorLanguage(Language, async () => (
+      (await loadedLibrary(Module))[Factory](
+        ...(Options == null ? [] : [ Options ])
+      )
+    ))
+  })
 
 
 /**** DocOffsetIn - converts a 1-based line/column pair into a doc offset ****/
@@ -12852,12 +12465,10 @@ console.warn(ErrorToShow)
       this.SnapshotIndex = Index
       this.ContentLayer.innerHTML = this.Snapshots[Index]
 
-      this.Selection = SelectedIds
-        .map((Id:string) => this.ContentLayer.querySelector('#'+CSS.escape(Id)))
-        .filter((Element:any) => Element != null)
       this.PointSelection = undefined
+      this.selectIds(SelectedIds)           // also reports the new selection
 
-      this.reportSelection(); this.announceUndoState()
+      this.announceUndoState()
       executeCallback(
         'DrawingEditor callback "onValueChange"',
         this.Callbacks.onValueChange, this.getValue()
@@ -16247,20 +15858,11 @@ console.warn(ErrorToShow)
         Container.appendChild(ViewCanvas)
 
         const Editor = new JCL_BitmapEditor()
-          Editor.CallbackSet = {
-            onValueChange:(...ArgList:any[]) =>
-              CallbackRef.current.onValueChange?.(...ArgList),
-            onSelectionChange:(...ArgList:any[]) =>
-              CallbackRef.current.onSelectionChange?.(...ArgList),
-            onUndoStateChange:(...ArgList:any[]) =>
-              CallbackRef.current.onUndoStateChange?.(...ArgList),
-            onColorPicked:(...ArgList:any[]) =>
-              CallbackRef.current.onColorPicked?.(...ArgList),
-            onViewportChange:(...ArgList:any[]) =>
-              CallbackRef.current.onViewportChange?.(...ArgList),
-            onTextRequest:(...ArgList:any[]) =>         // returns the entered
-              CallbackRef.current.onTextRequest?.(...ArgList)          // text!
-          }
+          Editor.CallbackSet = forwardedCallbacksFor(CallbackRef, [
+            'onValueChange','onSelectionChange','onUndoStateChange',
+            'onColorPicked','onViewportChange',
+            'onTextRequest'                      // returns the entered text!
+          ])                                // s. "auxiliary functions"
           Editor.initialiseDocument(Width,Height)
           Editor.attachTo(ViewCanvas)
           if (Value != null) { Editor.importImage(Value) }
@@ -16657,27 +16259,7 @@ console.warn(ErrorToShow)
           return
         }
       }
-      ctx.beginPath()
-      switch (Obj.Type) {
-        case 'rect':
-          ctx.rect(Obj.X, Obj.Y, Obj.Width, Obj.Height)
-          break
-        case 'ellipse':
-          ctx.ellipse(
-            Obj.X+Obj.Width/2, Obj.Y+Obj.Height/2,
-            Obj.Width/2, Obj.Height/2, 0, 0, Math.PI*2
-          )
-          break
-        case 'polygon':
-          if ((Obj.Points?.length??0) >= 2) {
-            ctx.moveTo(Obj.Points![0].X, Obj.Points![0].Y)
-            for (let i=1; i<Obj.Points!.length; i++) {
-              ctx.lineTo(Obj.Points![i].X, Obj.Points![i].Y)
-            }
-            ctx.closePath()
-          }
-          break
-      }
+      _rde_buildPath(ctx,Obj)      // shared with the effect plug-ins (s. below)
       if (Obj.FillColor !== 'none') { ctx.fillStyle = Obj.FillColor; ctx.fill() }
       if (Obj.StrokeWidth > 0) {
         ctx.strokeStyle = Obj.StrokeColor
@@ -17540,18 +17122,8 @@ console.warn(ErrorToShow)
   /**** #restoreSnapshot ****/
 
     #restoreSnapshot ():void {
-      this.ObjectList = JSON.parse(this.Snapshots[this.SnapshotIndex])
-      this.#ObjectIdCounter = this.ObjectList.reduce((Max, o) => {
-        const n = parseInt(o.Id.replace(/^obj-/,''), 10)
-        return isNaN(n) ? Max : Math.max(Max, n)
-      }, 0)
-      this.SelectedIds = this.SelectedIds.filter((Id) => this.objectWithId(Id) != null)
-      this.#ImageCache.clear()
-      for (const Obj of this.ObjectList) {
-        if (Obj.Type === 'image') { this.loadImageForObject(Obj) }
-      }
-      this.requestRendering()
-    }
+      this.#adoptObjectList(JSON.parse(this.Snapshots[this.SnapshotIndex]))
+    }                            // "#adoptObjectList" s. "Import and Export"
 
   /**** announceUndoState ****/
 
@@ -17579,6 +17151,24 @@ console.warn(ErrorToShow)
       return JSON.stringify(this.ObjectList)
     }
 
+  /**** #adoptObjectList - installs a new scene, rebuilds derived state ****/
+
+  // shared by "setValue" and "#restoreSnapshot" (see "Change History")
+
+    #adoptObjectList (List:JCL_RealDrawObject[]):void {
+      this.ObjectList = List
+      this.#ObjectIdCounter = List.reduce((Max, o) => {
+        const n = parseInt(o.Id.replace(/^obj-/,''), 10)
+        return isNaN(n) ? Max : Math.max(Max, n)
+      }, 0)
+      this.SelectedIds = this.SelectedIds.filter((Id) => this.objectWithId(Id) != null)
+      this.#ImageCache.clear()
+      for (const Obj of this.ObjectList) {
+        if (Obj.Type === 'image') { this.loadImageForObject(Obj) }
+      }
+      this.requestRendering()
+    }
+
   /**** setValue - replaces the scene without firing "onValueChange" ****/
 
     setValue (Value:string):void {
@@ -17592,20 +17182,11 @@ console.warn(ErrorToShow)
           throwError('InvalidArgument: the given value is not a JSON array')
         }
       }
-      this.ObjectList  = List
       this.SelectedIds = []
-      this.#ImageCache.clear()
-      this.#ObjectIdCounter = List.reduce((Max, o) => {
-        const n = parseInt(o.Id.replace(/^obj-/,''), 10)
-        return isNaN(n) ? Max : Math.max(Max, n)
-      }, 0)
-      for (const Obj of this.ObjectList) {
-        if (Obj.Type === 'image') { this.loadImageForObject(Obj) }
-      }
+      this.#adoptObjectList(List)
       this.Snapshots     = [Value.trim() === '' ? '[]' : Value]
       this.SnapshotIndex = 0
       this.announceUndoState()
-      this.requestRendering()
     }
 
   /**** importImage - adds an image object from a data URL or Blob ****/
@@ -17919,18 +17500,14 @@ JCL_RealDrawEditor.registerEffect({
 
         const Editor = new JCL_RealDrawEditor()
           Editor.Callbacks = {
+            ...forwardedCallbacksFor(CallbackRef, [    // s. "auxiliary functions"
+              'onSelectionChange','onToolChange','onUndoStateChange',
+              'onTextRequest'
+            ]),
             onValueChange:(newValue:string) => {
               internalValue.current = newValue
               CallbackRef.current.onValueChange?.(newValue)
             },
-            onSelectionChange:(SelectedIds:string[]) =>
-              CallbackRef.current.onSelectionChange?.(SelectedIds),
-            onToolChange:(Tool:JCL_RealDrawEditorTool) =>
-              CallbackRef.current.onToolChange?.(Tool),
-            onUndoStateChange:(canUndo:boolean, canRedo:boolean) =>
-              CallbackRef.current.onUndoStateChange?.(canUndo,canRedo),
-            onTextRequest:(...ArgList:any[]) =>
-              CallbackRef.current.onTextRequest?.(...ArgList),
           }
           Editor.initialiseScene(Width, Height)
           Editor.attachTo(ViewCanvas, OverlaySVG)
@@ -18268,30 +17845,23 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** validate "Notes" (reject notes with identical keys) ****/
 
-      const NoteKeySet:Set<JCL_StickyNoteKey> = new Set()
-      const NoteKeyList:JCL_StickyNoteKey[]   = Notes.map((Note:Indexable) => {
-        const Key = String(executedCallback(
-          'NoteBoard callback "KeyOfNote"', KeyOfNote, Note
-        ))
-        if (NoteKeySet.has(Key)) throwError(
-          'InvalidArguments: the given "Notes" contain notes with identical keys'
-        )
-        NoteKeySet.add(Key)
-        return Key
-      })
+    // "validatedKeySetFrom" is a module-level helper (see "auxiliary
+    // functions") which is shared with "legacyDataFlowProcessView"
+
+      const NoteKeyList:JCL_StickyNoteKey[] = Notes.map((Note:Indexable) => String(
+        executedCallback('NoteBoard callback "KeyOfNote"', KeyOfNote, Note)
+      ))
+      const NoteKeySet = validatedKeySetFrom(NoteKeyList,'"Notes"')
 
     /**** sanitize "selectedKeys" (ignore unknown keys and double entries) ****/
 
+    // "sanitizedSelection" is a module-level helper (see "auxiliary
+    // functions") which is shared with "legacyDataFlowProcessView"
+
       const SelectionSet:Set<JCL_StickyNoteKey> = new Set()
       if (BoardIsSelectable) {
-        selectedKeys = selectedKeys.filter((Key:JCL_StickyNoteKey) => {
-          if (NoteKeySet.has(Key) && ! SelectionSet.has(Key)) {
-            SelectionSet.add(Key)
-            return true
-          } else {
-            return false
-          }
-        })
+        selectedKeys = sanitizedSelection(selectedKeys,NoteKeySet)
+        selectedKeys.forEach((Key:JCL_StickyNoteKey) => SelectionSet.add(Key))
       }
 
     /**** changeStickyNoteSelection ****/
@@ -18341,13 +17911,11 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** GeometryFromGesture - applies the gesture delta, clamped to the pane ****/
 
+    // "clamped" is a module-level helper (see "auxiliary functions")
+
       function GeometryFromGesture (StartGeometry:Indexable):Indexable {
         const { Mode, dx,dy } = GestureRef.current as Indexable
         const { x,y, Width,Height } = StartGeometry
-
-        function clamped (Value:number, Minimum:number, Maximum:number):number {
-          return Math.max(Minimum, Math.min(Value,Math.max(Minimum,Maximum)))
-        }
 
         if (Mode === 'move') {
           return {
@@ -18433,9 +18001,7 @@ JCL_RealDrawEditor.registerEffect({
         if (BoardIsSelectable) {
           let selection = selectedKeys
           if (! SelectionSet.has(NoteKey)) {
-            const additively = (Event != null) && (
-              Event.shiftKey || Event.metaKey || Event.ctrlKey
-            )
+            const additively = isAdditive(Event)
             selection = changeStickyNoteSelection(NoteKey,additively)
           }
           if (selection.includes(NoteKey)) { GestureKeys = selection }
@@ -18538,7 +18104,9 @@ JCL_RealDrawEditor.registerEffect({
 
     // as "Position"s are kept in NotePane *content* coordinates, panning moves
     // the pointer (and, thus, the dragged notes) within the pane without any
-    // further correction - the note simply stays under the pointer
+    // further correction - the note simply stays under the pointer.
+    // "PanningVelocity" and "clampedPanningInterval" are module-level helpers
+    // (see "auxiliary functions") shared with "legacyDataFlowProcessView"
 
       function PanningStep (Timestamp:number):void {
         const Gesture  = GestureRef.current
@@ -18553,38 +18121,17 @@ JCL_RealDrawEditor.registerEffect({
           return
         }
 
-        function PanningSpeed (lowerDepth:number, upperDepth:number):number {
-          switch (true) {               // speed grows linearly with penetration
-            case (lowerDepth > 0):
-              return -maxPanningSpeed * Math.min(1,lowerDepth/SensorWidth)
-            case (upperDepth > 0):
-              return  maxPanningSpeed * Math.min(1,upperDepth/SensorWidth)
-            default:
-              return 0
-          }
-        }
-
-        const ScrollerBox = Scroller.getBoundingClientRect()
-        const vx = ((SensorWidth === 0) ? 0 : PanningSpeed(
-          SensorWidth - (lastClientX-ScrollerBox.left),
-          SensorWidth - (ScrollerBox.right-lastClientX)
-        ))
-        const vy = ((SensorWidth === 0) ? 0 : PanningSpeed(
-          SensorWidth - (lastClientY-ScrollerBox.top),
-          SensorWidth - (ScrollerBox.bottom-lastClientY)
-        ))
+        const { vx,vy } = PanningVelocity(
+          Scroller.getBoundingClientRect(), lastClientX,lastClientY,
+          SensorWidth, maxPanningSpeed
+        )
 
         if ((vx === 0) && (vy === 0)) {
           Gesture.PanningRAF = undefined; Gesture.PanningTimestamp = undefined
           return             // leaves the loop - "continuedGesture" restarts it
         }
 
-        const dt = Math.min(0.1, (
-          Gesture.PanningTimestamp == null
-          ? 0
-          : (Timestamp-Gesture.PanningTimestamp)/1000
-        ))
-        Gesture.PanningTimestamp = Timestamp
+        const dt = clampedPanningInterval(Gesture,Timestamp)
 
         const oldScrollLeft = Scroller.scrollLeft
         const oldScrollTop  = Scroller.scrollTop
@@ -18611,27 +18158,7 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** default pane size = current size of the NoteBoard itself ****/
 
-      const [ measuredPaneSize,setMeasuredPaneSize ] = useState<Indexable>({
-        Width:0, Height:0
-      })
-
-      useLayoutEffect(() => {
-        const Scroller = ScrollerRef.current
-        if (Scroller == null) { return }
-
-        const Observer = new ResizeObserver(() => setMeasuredPaneSize(
-          (oldSize:Indexable) => {
-            const Width = Scroller.clientWidth, Height = Scroller.clientHeight
-            return (
-              (oldSize.Width === Width) && (oldSize.Height === Height)
-              ? oldSize                          // avoids unnecessary rerenders
-              : { Width,Height }
-            )
-          }
-        ))
-        Observer.observe(Scroller)
-        return () => Observer.disconnect()
-      },[])
+      const measuredPaneSize = useMeasuredPaneSize(ScrollerRef)
 
       const actualPaneWidth  = PaneWidth  ?? measuredPaneSize.Width
       const actualPaneHeight = PaneHeight ?? measuredPaneSize.Height
@@ -18672,7 +18199,7 @@ JCL_RealDrawEditor.registerEffect({
               )}
               onNoteClick=${(x:number,y:number, Event:PointerEvent) =>
                 changeStickyNoteSelection(
-                  NoteKey, Event.shiftKey || Event.metaKey || Event.ctrlKey
+                  NoteKey, isAdditive(Event)
                 )
               }
               onMoveStart=${(dx:number,dy:number, x:number,y:number, Event:PointerEvent) =>
@@ -19303,20 +18830,16 @@ JCL_RealDrawEditor.registerEffect({
     /**** validate "Nodes", "Edges", "StickyNotes" and "Groups" (reject duplicate keys) ****/
 
     // the "Key" fields themselves are compared - no separate "KeyOf..."
-    // computation functions are needed (see NoteBoard for the contrast)
+    // computation functions are needed (see NoteBoard for the contrast).
+    // "validatedKeySetFrom" is a module-level helper (see "auxiliary
+    // functions") which is shared with "legacyNoteBoard"
 
       function KeySetFrom (
         ElementList:Indexable[], Description:string
       ):Set<string> {
-        const KeySet:Set<string> = new Set()
-          ElementList.forEach((Element:Indexable) => {
-            const Key = String(Element.Key)
-            if (KeySet.has(Key)) throwError(
-              `InvalidArguments: the given ${Description} contain entries with identical keys`
-            )
-            KeySet.add(Key)
-          })
-        return KeySet
+        return validatedKeySetFrom(
+          ElementList.map((Element:Indexable) => String(Element.Key)), Description
+        )
       }
 
       const NodeKeySet       = KeySetFrom(Nodes,'"Nodes"')
@@ -19364,19 +18887,8 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** sanitize the given selections (drop unknown keys and doubles) ****/
 
-      function sanitizedSelection (
-        selectedKeys:string[], KnownKeySet:Set<string>
-      ):string[] {
-        const seen:Set<string> = new Set()
-        return selectedKeys.filter((Key:string) => {
-          if (KnownKeySet.has(Key) && ! seen.has(Key)) {
-            seen.add(Key)
-            return true
-          } else {
-            return false
-          }
-        })
-      }
+    // "sanitizedSelection" is a module-level helper (see "auxiliary
+    // functions") which is shared with "legacyNoteBoard"
 
       if (ViewIsSelectable) {
         selectedNodeKeys       = sanitizedSelection(selectedNodeKeys,NodeKeySet)
@@ -19504,11 +19016,7 @@ JCL_RealDrawEditor.registerEffect({
         }
       },[])
 
-    /**** clamped / GridSnapped ****/
-
-      function clamped (Value:number, Minimum:number, Maximum:number):number {
-        return Math.max(Minimum, Math.min(Value,Math.max(Minimum,Maximum)))
-      }
+    /**** GridSnapped ("clamped" is a module-level helper, s. "auxiliary functions") ****/
 
       function GridSnapped (Value:number, Spacing:number):number {
         return (
@@ -19718,9 +19226,7 @@ JCL_RealDrawEditor.registerEffect({
             Kind === 'group' ? GroupSelectionSet : StickyNoteSelectionSet
           )
           if (! SelectionSet.has(Key)) {
-            const additively = (Event != null) && (
-              Event.shiftKey || Event.metaKey || Event.ctrlKey
-            )
+            const additively = isAdditive(Event)
             Selection = changeDataFlowSelection(Kind,Key,additively)
           }
 
@@ -20027,7 +19533,7 @@ JCL_RealDrawEditor.registerEffect({
     /**** clicks onto the pane itself select edges or clear the selection ****/
 
       function handlePaneClick (x:number,y:number, Event:PointerEvent):void {
-        const additively = Event.shiftKey || Event.metaKey || Event.ctrlKey
+        const additively = isAdditive(Event)
         const EdgeKey    = EdgeKeyAt(x,y)
         switch (true) {
           case (EdgeKey != null):
@@ -20095,7 +19601,9 @@ JCL_RealDrawEditor.registerEffect({
     // AND rubber edges - pure resize (and lasso) gestures still do not pan.
     // As "Position"s are kept in pane *content* coordinates, panning moves
     // the pointer (and, thus, the dragged elements) within the pane without
-    // any further correction
+    // any further correction. "PanningVelocity" and "clampedPanningInterval"
+    // are module-level helpers (see "auxiliary functions") shared with
+    // "legacyNoteBoard"
 
       function PanningStep (Timestamp:number):void {
         const Gesture  = GestureRef.current
@@ -20111,38 +19619,17 @@ JCL_RealDrawEditor.registerEffect({
           return
         }
 
-        function PanningSpeed (lowerDepth:number, upperDepth:number):number {
-          switch (true) {              // speed grows linearly with penetration
-            case (lowerDepth > 0):
-              return -maxPanningSpeed * Math.min(1,lowerDepth/SensorWidth)
-            case (upperDepth > 0):
-              return  maxPanningSpeed * Math.min(1,upperDepth/SensorWidth)
-            default:
-              return 0
-          }
-        }
-
-        const ScrollerBox = Scroller.getBoundingClientRect()
-        const vx = ((SensorWidth === 0) ? 0 : PanningSpeed(
-          SensorWidth - (lastClientX-ScrollerBox.left),
-          SensorWidth - (ScrollerBox.right-lastClientX)
-        ))
-        const vy = ((SensorWidth === 0) ? 0 : PanningSpeed(
-          SensorWidth - (lastClientY-ScrollerBox.top),
-          SensorWidth - (ScrollerBox.bottom-lastClientY)
-        ))
+        const { vx,vy } = PanningVelocity(
+          Scroller.getBoundingClientRect(), lastClientX,lastClientY,
+          SensorWidth, maxPanningSpeed
+        )
 
         if ((vx === 0) && (vy === 0)) {
           Gesture.PanningRAF = undefined; Gesture.PanningTimestamp = undefined
           return         // leaves the loop - the "continued..." handlers restart it
         }
 
-        const dt = Math.min(0.1, (
-          Gesture.PanningTimestamp == null
-          ? 0
-          : (Timestamp-Gesture.PanningTimestamp)/1000
-        ))
-        Gesture.PanningTimestamp = Timestamp
+        const dt = clampedPanningInterval(Gesture,Timestamp)
 
         const oldScrollLeft = Scroller.scrollLeft
         const oldScrollTop  = Scroller.scrollTop
@@ -20468,27 +19955,7 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** default pane size = current size of the DataFlowProcessView itself ****/
 
-      const [ measuredPaneSize,setMeasuredPaneSize ] = useState<Indexable>({
-        Width:0, Height:0
-      })
-
-      useLayoutEffect(() => {
-        const Scroller = ScrollerRef.current
-        if (Scroller == null) { return }
-
-        const Observer = new ResizeObserver(() => setMeasuredPaneSize(
-          (oldSize:Indexable) => {
-            const Width = Scroller.clientWidth, Height = Scroller.clientHeight
-            return (
-              (oldSize.Width === Width) && (oldSize.Height === Height)
-              ? oldSize                            // avoids unnecessary rerenders
-              : { Width,Height }
-            )
-          }
-        ))
-        Observer.observe(Scroller)
-        return () => Observer.disconnect()
-      },[])
+      const measuredPaneSize = useMeasuredPaneSize(ScrollerRef)
 
       const actualPaneWidth  = PaneWidth  ?? measuredPaneSize.Width
       const actualPaneHeight = PaneHeight ?? measuredPaneSize.Height
@@ -20675,7 +20142,7 @@ JCL_RealDrawEditor.registerEffect({
                 ScrollerOf=${() => ScrollerRef.current}
                 onGroupClick=${(x:number,y:number, Event:PointerEvent) =>
                   changeDataFlowSelection(
-                    'group',GroupKey, Event.shiftKey || Event.metaKey || Event.ctrlKey
+                    'group',GroupKey, isAdditive(Event)
                   )
                 }
                 onMoveStart=${(dx:number,dy:number, x:number,y:number, Event:PointerEvent) =>
@@ -20718,7 +20185,7 @@ JCL_RealDrawEditor.registerEffect({
                 ScrollerOf=${() => ScrollerRef.current}
                 onNoteClick=${(x:number,y:number, Event:PointerEvent) =>
                   changeDataFlowSelection(
-                    'stickyNote',NoteKey, Event.shiftKey || Event.metaKey || Event.ctrlKey
+                    'stickyNote',NoteKey, isAdditive(Event)
                   )
                 }
                 onMoveStart=${(dx:number,dy:number, x:number,y:number, Event:PointerEvent) =>
@@ -20764,7 +20231,7 @@ JCL_RealDrawEditor.registerEffect({
                 ScrollerOf=${() => ScrollerRef.current}
                 onNodeClick=${(x:number,y:number, Event:PointerEvent) =>
                   changeDataFlowSelection(
-                    'node',NodeKey, Event.shiftKey || Event.metaKey || Event.ctrlKey
+                    'node',NodeKey, isAdditive(Event)
                   )
                 }
                 onNodeDoubleClick=${onNodeDoubleClick == null ? undefined : (
@@ -21823,18 +21290,14 @@ JCL_RealDrawEditor.registerEffect({
 
   let jspreadsheet:any, formula:any   // filled in by "loadSpreadsheetLibraries"
 
-  let SpreadsheetLibraries:Promise<void>|undefined
-
-  function loadSpreadsheetLibraries ():Promise<void> {
-    return SpreadsheetLibraries ??= Promise.all([
-      loadedLibrary('jspreadsheet-ce'),
-      loadedLibrary('@jspreadsheet/formula')
-    ]).then(([ jspreadsheetModule,formulaModule ]) => {
-      jspreadsheet = jspreadsheetModule.default ?? jspreadsheetModule
-      formula      = formulaModule.default      ?? formulaModule
-      flushPendingFormulaBatches()
-    })
-  }
+  const loadSpreadsheetLibraries = memoizedLoader(() => Promise.all([
+    loadedLibrary('jspreadsheet-ce'),
+    loadedLibrary('@jspreadsheet/formula')
+  ]).then(([ jspreadsheetModule,formulaModule ]) => {
+    jspreadsheet = jspreadsheetModule.default ?? jspreadsheetModule
+    formula      = formulaModule.default      ?? formulaModule
+    flushPendingFormulaBatches()
+  }))
 
 /**** type definitions ****/
 
@@ -22176,23 +21639,16 @@ JCL_RealDrawEditor.registerEffect({
   export type JCL_KanbanTaskMayBeDropped     = (Task:Indexable, ToColumn:Indexable, ToIndex:JCL_Ordinal) => boolean
   export type JCL_onKanbanTaskMove           = (MovedTask:Indexable, FromColumn:Indexable, ToColumn:Indexable, ToIndex:JCL_Ordinal) => void
 
-  let   KanbanKeyCounter:number = 0
-  const KanbanKeyMap:WeakMap<Indexable,number> = new WeakMap()
-
 /**** Default_KeyOfKanbanTask ****/
+
+// tasks with an "Id" use it directly - all others fall back onto the very
+// same key scheme (and WeakMap) as "legacyFlatListView"
 
   function Default_KeyOfKanbanTask (
     Task:Indexable, List:Indexable[], Index:JCL_Ordinal
   ):JCL_KanbanTaskKey {
     if (Task.Id != null) { return ''+Task.Id }
-
-    if (KanbanKeyMap.has(Task)) {
-      return ''+KanbanKeyMap.get(Task)
-    } else {
-      KanbanKeyCounter++
-      KanbanKeyMap.set(Task,KanbanKeyCounter)
-      return ''+KanbanKeyCounter
-    }
+    return Default_KeyOfFlatListItem(Task,List,Index)
   }
 
 /**** Default_KanbanTaskRenderer ****/
@@ -22244,21 +21700,8 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** validate "Columns" and "Tasks" (reject double entries) ****/
 
-      const ColumnSet:Set<Indexable> = new Set()
-      Columns.forEach((Column:Indexable) => {
-        if (ColumnSet.has(Column)) throwError(
-          'InvalidArguments: the given "Columns" contain double entries'
-        )
-        ColumnSet.add(Column)
-      })
-
-      const TaskSet:Set<Indexable> = new Set()
-      Tasks.forEach((Task:Indexable) => {
-        if (TaskSet.has(Task)) throwError(
-          'InvalidArguments: the given "Tasks" contain double entries'
-        )
-        TaskSet.add(Task)
-      })
+      assertNoDuplicates(Columns,'"Columns"')       // s. "auxiliary functions"
+      assertNoDuplicates(Tasks,  '"Tasks"')
 
     /**** selection kept per column - purely internal (see comment above) ****/
 
@@ -22468,11 +21911,11 @@ JCL_RealDrawEditor.registerEffect({
 
   let renderQRCodeSVG:any            // filled in by "loadQRCodeViewLibraries"
 
-  function loadQRCodeViewLibraries ():Promise<void> {
-    return loadedLibrary('uqr').then((uqrModule:any) => {
+  const loadQRCodeViewLibraries = memoizedLoader(() => (
+    loadedLibrary('uqr').then((uqrModule:any) => {
       renderQRCodeSVG = uqrModule.renderSVG
     })
-  }
+  ))
 
   export const JCL_QRCodeECCLevels = ['L','M','Q','H'] as const
   export type  JCL_QRCodeECCLevel  = typeof JCL_QRCodeECCLevels[number]
@@ -22613,20 +22056,9 @@ JCL_RealDrawEditor.registerEffect({
         const Size    = acceptableValue   (PropSet.Size,    (Value:any) => ValueIsOneOf(Value,[ 'xs','small','normal','large' ])) ?? 'normal'
       const ContentList = PropSet.children
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
-      const ClassList = (
-        'jcl-component styled-button variant-'+Variant+' '+SizeClass+' '+Classes
-      )
+      const SizeClass = SizeClassFor(Size)
 
-      if (Value == null) {
-        return html`<button class="${ClassList}" ...${PropSet.RestProps}>
-          ${ContentList}
-        </>`
-      } else {
-        return html`<button class="${ClassList}" ...${PropSet.RestProps}
-          dangerouslySetInnerHTML=${{__html:Value}}
-        />`
-      }
+      return renderedTextBlock('button',`jcl-component styled-button variant-${Variant} ${SizeClass} ${Classes}`,undefined,PropSet.RestProps,Value,ContentList)
     })
   }
 
@@ -22748,11 +22180,7 @@ JCL_RealDrawEditor.registerEffect({
         const onClick      = acceptableFunction(PropSet.onClick)
 
       Value = Value ?? JCL_empty
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
       const checked       = (actualValue == true)
       const indeterminate = (actualValue == null) || ValueIsSpecial(Value)
@@ -22769,7 +22197,7 @@ JCL_RealDrawEditor.registerEffect({
         )
       }, [ actualDisabling, onClick,onValueInput ])
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-checkbox ${SizeClass} ${actualDisabling ? 'disabled' : ''} ${Classes}"
         style=${Style}
@@ -22882,11 +22310,7 @@ JCL_RealDrawEditor.registerEffect({
         const onClick      = acceptableFunction(PropSet.onClick)
 
       Value = Value ?? JCL_empty
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
       const checked = (actualValue == true)
 
@@ -22902,7 +22326,7 @@ JCL_RealDrawEditor.registerEffect({
         )
       }, [ actualDisabling, onClick,onValueInput ])
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-radiobutton ${SizeClass} ${actualDisabling ? 'disabled' : ''} ${Classes}"
         style=${Style}
@@ -23010,7 +22434,7 @@ JCL_RealDrawEditor.registerEffect({
         const Maximum    = acceptableNumber  (PropSet.Max  ?? PropSet.Maximum)
         const Size       = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-gauge ${SizeClass} ${Classes}" style=${Style}>
         <meter
@@ -23106,7 +22530,7 @@ JCL_RealDrawEditor.registerEffect({
         const Maximum = acceptableNumber  (PropSet.Max ?? PropSet.Maximum)
         const Size    = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-progressbar ${SizeClass} ${Classes}" style=${Style}>
         <progress value=${Value} max=${Maximum} ...${PropSet.RestProps}/>
@@ -23198,42 +22622,24 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef<any>(undefined)
-
-      let ValueToShow = (ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
-
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(
+        ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty
       )
 
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-        executeCallback('styledSlider callback "onInput"', onInput, Event)
+      const rerender = useRerenderer()
 
-        let Value = shownValue.current = parseFloat(Event.target.value)
-        rerender()                       // keeps the track gradient in sync
-        executeCallback(
-          'styledSlider callback "onValueInput"', onValueInput, Value,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledSlider callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledSlider', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur,
+        processedInput:(Event:any) => {
+          const enteredValue = shownValue.current = parseFloat(Event.target.value)
+          rerender()                     // keeps the track gradient in sync
+          return enteredValue
+        }
+      })
 
     /**** compute the fill percentage for the track gradient ****/
 
@@ -23249,24 +22655,14 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId:HashmarkId, SuggestionList:HashmarkList } = useDatalist(
+        Hashmarks, (Item:string) => {
+          const { Value,Label } = parsedOption(Item)
+          return html`<option value=${Value}>${Label}</option>`
+        }
+      )
 
-      let HashmarkList:any = '', HashmarkId
-      if ((Hashmarks != null) && (Hashmarks.length > 0)) {
-        HashmarkId = internalId + '-Hashmarks'
-
-        HashmarkList = html`\n<datalist id=${HashmarkId}>
-          ${Hashmarks.map((Item:string) => {
-            const Value = Item.replace(/:.*$/,'').trim()
-            const Label = Item.replace(/^[^:]+:/,'').trim()
-
-            return html`<option value=${Value}>${Label}</option>`
-          })}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-slider ${SizeClass} ${Classes}" style=${Style}>
         <input type="range" ref=${ViewRef} disabled=${actualDisabling}
@@ -23421,58 +22817,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledTextlineInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledTextlineInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledTextlineInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledTextlineInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="text" class="jcl-component styled-input styled-textline-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -23506,48 +22865,19 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledPasswordInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledPasswordInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledPasswordInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledPasswordInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const rerender = useRerenderer()
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="password" class="jcl-component styled-input styled-password-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -23591,62 +22921,35 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef<any>(undefined)
-
-      let ValueToShow = (ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        if ((Digits != null) && ValueIsNumber(ValueToShow)) {
-          ValueToShow = ValueToShow.toFixed(Digits)     // rounds to "Digits" digits
-          if (withoutTrailingZeros) { ValueToShow = parseFloat(ValueToShow) }
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(
+        ValueIsSpecial(Value) || (Value != null) && ! isNaN(Value) ? Value : JCL_empty,
+        (Value:any) => {
+          if ((Digits != null) && ValueIsNumber(Value)) {
+            Value = Value.toFixed(Digits)               // rounds to "Digits" digits
+            if (withoutTrailingZeros) { Value = parseFloat(Value) }
+          }
+          return Value
         }
-        shownValue.current = ValueToShow
-      }
-
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
       )
 
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-        executeCallback('styledNumberInput callback "onInput"', onInput, Event)
-
-        const enteredValue = parseFloat(Event.target.value)
-        shownValue.current = (isNaN(enteredValue) ? undefined : enteredValue)
-        executeCallback(
-          'styledNumberInput callback "onValueInput"', onValueInput, shownValue.current,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledNumberInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledNumberInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur,
+        processedInput:(Event:any) => {
+          const enteredValue = parseFloat(Event.target.value)
+          shownValue.current = (isNaN(enteredValue) ? undefined : enteredValue)
+          return shownValue.current
+        }
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="number" ref=${ViewRef}
         class="jcl-component styled-input styled-number-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}"
@@ -23682,58 +22985,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledEMailAddressInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledEMailAddressInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledEMailAddressInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledEMailAddressInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="email" class="jcl-component styled-input styled-emailaddress-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -23767,58 +23033,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledPhoneNumberInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledPhoneNumberInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()               // because "ValueToShow" may now be different
-        executeCallback('styledPhoneNumberInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledPhoneNumberInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="tel" class="jcl-component styled-input styled-phonenumber-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -23852,58 +23081,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledURLInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledURLInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledURLInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledURLInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="url" class="jcl-component styled-input styled-url-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -23935,58 +23127,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledTimeInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledTimeInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledTimeInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledTimeInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="time" class="jcl-component styled-input styled-time-input ${SizeClass} ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
@@ -24017,58 +23172,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledDateTimeInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledDateTimeInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledDateTimeInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledDateTimeInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="datetime-local" class="jcl-component styled-input styled-datetime-input ${SizeClass} ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
@@ -24098,58 +23216,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledDateInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledDateInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledDateInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledDateInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="date" class="jcl-component styled-input styled-date-input ${SizeClass} ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum}
@@ -24179,58 +23260,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledWeekInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledWeekInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledWeekInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledWeekInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="week" class="jcl-component styled-input styled-week-input ${SizeClass} ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum}
@@ -24260,58 +23304,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledMonthInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledMonthInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledMonthInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledMonthInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="month" class="jcl-component styled-input styled-month-input ${SizeClass} ${Classes}" ref=${ViewRef}
         value=${actualValue} min=${Minimum} max=${Maximum}
@@ -24345,58 +23352,21 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledSearchInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledSearchInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledSearchInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledSearchInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-      const rerender   = useRerenderer()
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId = internalId + '-Suggestions'
-
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="search" class="jcl-component styled-input styled-search-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
         value=${actualValue} minlength=${minLength} maxlength=${maxLength}
@@ -24431,11 +23401,7 @@ JCL_RealDrawEditor.registerEffect({
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
     /**** handle inputs ****/
 
@@ -24453,21 +23419,13 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const internalId = useId()
-
-      let SuggestionList:any = '', SuggestionId
-      if ((Suggestions != null) && (Suggestions.length > 0)) {
-        SuggestionId   = internalId + '-Suggestions'
-        SuggestionList = html`<datalist id=${SuggestionId}>
-          ${Suggestions.map((Value:string) => html`<option value=${Value}></option>`)}
-        </datalist>`
-      }
+      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       if (minWidth == null) {
         minWidth = 40 + ((Suggestions != null) && (Suggestions.length > 0) ? 20 : 0)
       }
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<input type="color" class="jcl-component styled-input styled-color-input ${SizeClass} ${Classes}"
         style="min-width:${minWidth}px; ${Style}"
@@ -24542,11 +23500,7 @@ JCL_RealDrawEditor.registerEffect({
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
     /**** handle inputs ****/
 
@@ -24564,25 +23518,22 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-dropdown ${Classes}">
         <select class="jcl-component styled-input ${SizeClass}"
           disabled=${actualDisabling} onInput=${_onInput} ...${PropSet.RestProps}
         >${Options.map((Option:string) => {
-            let   OptionValue = Option.replace(/:.*$/,'').trim()
-            let   OptionLabel = Option.replace(/^[^:]*:/,'').trim() // allows for empty values
-            const disabled    = (OptionLabel[0] === '-')
-            if (/^[-]+$/.test(OptionLabel)) {
-              return html`<hr/>`
-            } else {
-              if (OptionValue === Option) { OptionValue = OptionValue.replace(/^-/,'') }
-              if (disabled)               { OptionLabel = OptionLabel.replace(/^-/,'') }
-
-              return html`<option value=${OptionValue}
-                selected=${OptionValue === actualValue} disabled=${disabled}
-              >${OptionLabel}</option>`
-            }
+            const {
+              Value:OptionValue, Label:OptionLabel, disabled,isRuler
+            } = parsedOption(Option)               // allows for empty values
+            return (
+              isRuler
+              ? html`<hr/>`
+              : html`<option value=${OptionValue}
+                  selected=${OptionValue === actualValue} disabled=${disabled}
+                >${OptionLabel}</option>`
+            )
           }
         )}</select>
       </>`
@@ -24619,11 +23570,8 @@ JCL_RealDrawEditor.registerEffect({
       background:var(--jcl-muted-fg-color,#737373);
       opacity:0.5;
       pointer-events:none;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_ChevronDown}
+      ${CSS_MaskIcon}
     }
 
   /**** like shadcn, "disabled" dims the whole wrapper (incl. chevron) ****/
@@ -24661,13 +23609,10 @@ JCL_RealDrawEditor.registerEffect({
         const onValueInput = acceptableFunction(PropSet.onValueInput)
         const onInput      = acceptableFunction(PropSet.onInput)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
+      const ValueToShow = (Value == null ? JCL_empty : Value)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
     /**** handle inputs ****/
 
@@ -24687,7 +23632,7 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<label class="jcl-component styled-input styled-file-input ${SizeClass} ${Classes} ${actualDisabling ? 'disabled' : ''}"
         style=${Style}
@@ -24756,46 +23701,18 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** ignore external changes while this control is in use ****/
 
-      const ViewRef    = useRef()
-      const shownValue = useRef()
+      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
 
-      let ValueToShow = (Value == null ? JCL_empty : Value)
-      if (
-        (ViewRef.current != null) &&
-        (document.activeElement === ViewRef.current)
-      ) {
-        ValueToShow = shownValue.current
-      } else {
-        shownValue.current = ValueToShow
-      }
+      const { actualValue,actualPlaceholder,actualDisabling } =
+        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
 
-      const [ actualValue,actualPlaceholder,actualDisabling ] = (
-        ValueIsSpecial(ValueToShow)
-        ? [ undefined,ValueToShow === JCL_empty ? Placeholder ?? ValueToShow.Placeholder : ValueToShow.Placeholder,disabled || ValueToShow.disabled ]
-        : [ ValueToShow,Placeholder,disabled ]
-      )
-
-      const _onInput = useCallback((Event:any) => {
-        consumeEvent(Event)
-        if (actualDisabling == true) { return }
-
-        executeCallback('styledTextInput callback "onInput"', onInput, Event)
-
-        const enteredValue = Event.target.value
-        shownValue.current = (enteredValue === '' ? JCL_empty : enteredValue)
-        executeCallback(
-          'styledTextInput callback "onValueInput"', onValueInput, enteredValue,Event
-        )
-      }, [ actualDisabling, onInput,onValueInput ])
-
-      const _onBlur = useCallback((Event:any) => {
-        rerender()                 // because "ValueToShow" may now be different
-        executeCallback('styledTextInput callback "onBlur"', onBlur, Event)
-      }, [ onBlur ])
+      const { _onInput,_onBlur } = useInputCallbacks({
+        Name:'styledTextInput', actualDisabling, shownValue,
+        onInput,onValueInput,onBlur
+      })
 
     /**** actual rendering ****/
 
-      const rerender = useRerenderer()
       const uniqueId = useId()
 
       return html`<textarea class="jcl-component styled-input styled-text-input ${Classes} ${invalid ? 'invalid' : ''}"
@@ -24823,45 +23740,55 @@ JCL_RealDrawEditor.registerEffect({
     }
   `)
 
-/**** styledIcon ****/
+/**** styledIconButtonView - the common core of styledIcon and styledFAIcon ****/
 
 // a square icon button in the look of a shadcn/ui "Button" (replacing that
 // component's "icon" sizes) - reuses the "styled-button" stylesheet, its
 // default variant is "ghost" (as commonly used for icon buttons). Without an
-// explicit "Color", the icon uses the current text color of its variant
+// explicit "Color", the icon uses the current text color of its variant.
+// "GlyphView" renders the actual icon and receives the configured color
+
+  function styledIconButtonView (
+    Name:string, extraClass:string, PropSet:Indexable, GlyphView:Function
+  ):any {
+    const Classes  = acceptableTextline(PropSet.Class) ?? ''
+    const Style    = acceptableText    (PropSet.Style)
+    const Color    = acceptableColor   (PropSet.Color)     // default: currentColor
+    const Label    = acceptableString  (PropSet.Label)
+    const active   = acceptableBoolean (PropSet.active)   ?? false
+    const disabled = acceptableBoolean (PropSet.disabled) ?? false
+    const Variant  = acceptableValue   (PropSet.Variant, (Value:any) => ValueIsOneOf(Value,[ 'default','destructive','outline','secondary','ghost' ])) ?? 'ghost'
+    const Size     = acceptableValue   (PropSet.Size,    (Value:any) => ValueIsOneOf(Value,[ 'xs','small','normal','large' ])) ?? 'normal'
+    const onClick  = acceptableFunction(PropSet.onClick)
+
+    const _onClick = useCallback((Event:Event):void => {
+      if (disabled) { return consumingEvent(Event) }
+      executeCallback(Name + ' callback "onClick"', onClick, Event)
+    }, [ disabled, onClick ])
+
+    const SizeClass = SizeClassFor(Size)
+
+    return html`<button
+      class="jcl-component styled-button ${extraClass} variant-${Variant} ${SizeClass} ${active ? 'active' : ''} ${Classes}"
+      style=${Style} disabled=${disabled}
+      aria-label=${Label} aria-pressed=${active ? 'true' : undefined}
+      onClick=${_onClick} ...${PropSet.RestProps}
+    >${GlyphView(Color)}</>`
+  }
+
+/**** styledIcon ****/
 
   export function styledIcon (PropSet:Indexable):any {
     return safelyRendered(() => {
       PropSet = parseablePropSet(PropSet)
-        const Classes  = acceptableTextline(PropSet.Class) ?? ''
-        const Style    = acceptableText    (PropSet.Style)
-        const Value    = acceptableURL     (PropSet.Value) ?? `${IconFolder}/circle-information.png`
-        const Color    = acceptableColor   (PropSet.Color)   // default: currentColor
-        const Label    = acceptableString  (PropSet.Label)
-        const active   = acceptableBoolean (PropSet.active)   ?? false
-        const disabled = acceptableBoolean (PropSet.disabled) ?? false
-        const Variant  = acceptableValue   (PropSet.Variant, (Value:any) => ValueIsOneOf(Value,[ 'default','destructive','outline','secondary','ghost' ])) ?? 'ghost'
-        const Size     = acceptableValue   (PropSet.Size,    (Value:any) => ValueIsOneOf(Value,[ 'xs','small','normal','large' ])) ?? 'normal'
-        const onClick  = acceptableFunction(PropSet.onClick)
+        const Value = acceptableURL(PropSet.Value) ?? `${IconFolder}/circle-information.png`
 
-      const _onClick = useCallback((Event:Event):void => {
-        if (disabled) { return consumingEvent(Event) }
-        executeCallback('styledIcon callback "onClick"', onClick, Event)
-      }, [ disabled, onClick ])
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
-
-      return html`<button
-        class="jcl-component styled-button styled-icon variant-${Variant} ${SizeClass} ${active ? 'active' : ''} ${Classes}"
-        style=${Style} disabled=${disabled}
-        aria-label=${Label} aria-pressed=${active ? 'true' : undefined}
-        onClick=${_onClick} ...${PropSet.RestProps}
-      >
-        <span style="
+      return styledIconButtonView(
+        'styledIcon','styled-icon', PropSet, (Color:any) => html`<span style="
           -webkit-mask-image:url(${Value}); mask-image:url(${Value});
           background-color:${Color ?? 'currentColor'};
-        "/>
-      </>`
+        "/>`
+      )
     })
   }
 
@@ -24875,9 +23802,7 @@ JCL_RealDrawEditor.registerEffect({
     .jcl-component.styled-icon > span {
       display:inline-block; width:16px; height:16px;
       overflow:hidden; pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
 
     .jcl-component.styled-icon.active {
@@ -24905,41 +23830,20 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledFAIcon ****/
 
-// a square icon button in the look of a shadcn/ui "Button" (replacing that
-// component's "icon" sizes), showing a FontAwesome icon - reuses the
-// "styled-button" stylesheet, its default variant is "ghost" (as commonly
-// used for icon buttons). Without an explicit "Color", the icon uses the
-// current text color of its variant ("JCL_FAIconNames" comes from "FAIcon")
+// like "styledIcon", but showing a FontAwesome icon - both are built on the
+// shared "styledIconButtonView" core ("JCL_FAIconNames" comes from "FAIcon")
 
   export function styledFAIcon (PropSet:Indexable):any {
     return safelyRendered(() => {
       PropSet = parseablePropSet(PropSet)
-        const Classes  = acceptableTextline(PropSet.Class) ?? ''
-        const Style    = acceptableText    (PropSet.Style)
-        const Value    = acceptableValue   (PropSet.Value, (Value:any) => ValueIsOneOf(Value,JCL_FAIconNames)) ?? 'fa-question-circle-o'
-        const Color    = acceptableColor   (PropSet.Color)   // default: currentColor
-        const Label    = acceptableString  (PropSet.Label)
-        const active   = acceptableBoolean (PropSet.active)   ?? false
-        const disabled = acceptableBoolean (PropSet.disabled) ?? false
-        const Variant  = acceptableValue   (PropSet.Variant, (Value:any) => ValueIsOneOf(Value,[ 'default','destructive','outline','secondary','ghost' ])) ?? 'ghost'
-        const Size     = acceptableValue   (PropSet.Size,    (Value:any) => ValueIsOneOf(Value,[ 'xs','small','normal','large' ])) ?? 'normal'
-        const onClick  = acceptableFunction(PropSet.onClick)
+        const Value = acceptableValue(
+          PropSet.Value, (Value:any) => ValueIsOneOf(Value,JCL_FAIconNames)
+        ) ?? 'fa-question-circle-o'
 
-      const _onClick = useCallback((Event:Event):void => {
-        if (disabled) { return consumingEvent(Event) }
-        executeCallback('styledFAIcon callback "onClick"', onClick, Event)
-      }, [ disabled, onClick ])
-
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
-
-      return html`<button
-        class="jcl-component styled-button styled-fa-icon variant-${Variant} ${SizeClass} ${active ? 'active' : ''} ${Classes}"
-        style=${Style} disabled=${disabled}
-        aria-label=${Label} aria-pressed=${active ? 'true' : undefined}
-        onClick=${_onClick} ...${PropSet.RestProps}
-      >
-        <span class="fa ${Value}" style="color:${Color ?? 'currentColor'}"/>
-      </>`
+      return styledIconButtonView(
+        'styledFAIcon','styled-fa-icon', PropSet, (Color:any) =>
+          html`<span class="fa ${Value}" style="color:${Color ?? 'currentColor'}"/>`
+      )
     })
   }
 
@@ -24978,6 +23882,51 @@ JCL_RealDrawEditor.registerEffect({
     }
   `)
 
+//----------------------------------------------------------------------------//
+//                  shared helpers for "styled" components                    //
+//----------------------------------------------------------------------------//
+
+/**** renderedStyledContainer - a trivial, "Class"/"Style"-able wrapper ****/
+
+// serves the many pass-through containers (card parts, sidebar parts, table
+// parts, accordion frame, input group etc.)
+
+  function renderedStyledContainer (
+    TagName:string, ClassName:string, PropSet:Indexable
+  ):any {
+    return safelyRendered(() => {
+      PropSet = parseablePropSet(PropSet)
+        const Classes = acceptableTextline(PropSet.Class) ?? ''
+        const Style   = acceptableText    (PropSet.Style)
+
+      return html`<${TagName} class="jcl-component ${ClassName} ${Classes}"
+        style=${Style} ...${PropSet.RestProps}
+      >
+        ${PropSet.children}
+      </>`
+    })
+  }
+
+/**** renderedTextBlock - shows "Value" as HTML or the children as given ****/
+
+// the common "children vs. dangerouslySetInnerHTML" fork of "styledButton",
+// "styledBadge", "styledKbd", "styledCardTitle" and "styledCardDescription"
+
+  function renderedTextBlock (
+    TagName:string, ClassList:string, Style:any, RestProps:Indexable,
+    Value:any, ContentList:any
+  ):any {
+    if (Value == null) {
+      return html`<${TagName} class="${ClassList}" style=${Style} ...${RestProps}>
+        ${ContentList}
+      </>`
+    } else {
+      return html`<${TagName} class="${ClassList}" style=${Style} ...${RestProps}
+        dangerouslySetInnerHTML=${{__html:Value}}
+      />`
+    }
+  }
+
 /**** styledBadge ****/
 
 // looks like a shadcn/ui "Badge" with its variants "default", "secondary",
@@ -24991,19 +23940,7 @@ JCL_RealDrawEditor.registerEffect({
         const Variant = acceptableValue   (PropSet.Variant, (Value:any) => ValueIsOneOf(Value,[ 'default','destructive','outline','secondary' ])) ?? 'default'
       const ContentList = PropSet.children
 
-      const ClassList = (
-        'jcl-component styled-badge variant-'+Variant+' '+Classes
-      )
-
-      if (Value == null) {
-        return html`<span class="${ClassList}" ...${PropSet.RestProps}>
-          ${ContentList}
-        </>`
-      } else {
-        return html`<span class="${ClassList}" ...${PropSet.RestProps}
-          dangerouslySetInnerHTML=${{__html:Value}}
-        />`
-      }
+      return renderedTextBlock('span',`jcl-component styled-badge variant-${Variant} ${Classes}`,undefined,PropSet.RestProps,Value,ContentList)
     })
   }
 
@@ -25054,7 +23991,7 @@ JCL_RealDrawEditor.registerEffect({
         const Label   = acceptableTextline(PropSet.Label) ?? 'Loading'
         const Size    = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<svg class="jcl-component styled-spinner ${SizeClass} ${Classes}"
         style=${Style} role="status" aria-label=${Label}
@@ -25098,15 +24035,7 @@ JCL_RealDrawEditor.registerEffect({
         const Value   = acceptableText    (PropSet.Value)
       const ContentList = PropSet.children
 
-      if (Value == null) {
-        return html`<kbd class="jcl-component styled-kbd ${Classes}" ...${PropSet.RestProps}>
-          ${ContentList}
-        </>`
-      } else {
-        return html`<kbd class="jcl-component styled-kbd ${Classes}" ...${PropSet.RestProps}
-          dangerouslySetInnerHTML=${{__html:Value}}
-        />`
-      }
+      return renderedTextBlock('kbd',`jcl-component styled-kbd ${Classes}`,undefined,PropSet.RestProps,Value,ContentList)
     })
   }
 
@@ -25159,7 +24088,7 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-avatar ${SizeClass} ${Classes}"
         style=${Style} ...${PropSet.RestProps}
@@ -25798,11 +24727,8 @@ JCL_RealDrawEditor.registerEffect({
       width:16px; height:16px; margin-left:auto;
       background:currentColor;
       pointer-events:none;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_ChevronRight}
+      ${CSS_MaskIcon}
     }
 
     .styled-dropdown-menu-submenu > .submenu-panel {
@@ -26086,9 +25012,7 @@ JCL_RealDrawEditor.registerEffect({
       pointer-events:none;
       -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
               mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
 
     .jcl-component.styled-command-palette .search > input {
@@ -26252,9 +25176,7 @@ JCL_RealDrawEditor.registerEffect({
       display:inline-block; flex-shrink:0;
       width:16px; height:16px; margin-top:1px;
       pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
 
     .jcl-component.styled-toast.variant-info > .icon {
@@ -26305,17 +25227,7 @@ JCL_RealDrawEditor.registerEffect({
 /**** styledCard ****/
 
   export function styledCard (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-card ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-card',PropSet)
   }
 
   installStylesheetFor('jcl-component.styled-card',`
@@ -26335,63 +25247,23 @@ JCL_RealDrawEditor.registerEffect({
 /**** styledCardHeader (incl. styledCardAction) ****/
 
   export function styledCardHeader (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-card-header ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-card-header',PropSet)
   }
 
   export function styledCardAction (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-card-action ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-card-action',PropSet)
   }
 
 /**** styledCardContent ****/
 
   export function styledCardContent (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-card-content ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-card-content',PropSet)
   }
 
 /**** styledCardFooter ****/
 
   export function styledCardFooter (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-card-footer ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-card-footer',PropSet)
   }
 
   installStylesheetFor('jcl-component.styled-card-parts',`
@@ -26430,15 +25302,7 @@ JCL_RealDrawEditor.registerEffect({
         const Value   = acceptableText    (PropSet.Value)
       const ContentList = PropSet.children
 
-      if (Value == null) {
-        return html`<div class="jcl-component styled-card-title ${Classes}" ...${PropSet.RestProps}>
-          ${ContentList}
-        </>`
-      } else {
-        return html`<div class="jcl-component styled-card-title ${Classes}" ...${PropSet.RestProps}
-          dangerouslySetInnerHTML=${{__html:Value}}
-        />`
-      }
+      return renderedTextBlock('div',`jcl-component styled-card-title ${Classes}`,undefined,PropSet.RestProps,Value,ContentList)
     })
   }
 
@@ -26451,15 +25315,7 @@ JCL_RealDrawEditor.registerEffect({
         const Value   = acceptableText    (PropSet.Value)
       const ContentList = PropSet.children
 
-      if (Value == null) {
-        return html`<div class="jcl-component styled-card-description ${Classes}" ...${PropSet.RestProps}>
-          ${ContentList}
-        </>`
-      } else {
-        return html`<div class="jcl-component styled-card-description ${Classes}" ...${PropSet.RestProps}
-          dangerouslySetInnerHTML=${{__html:Value}}
-        />`
-      }
+      return renderedTextBlock('div',`jcl-component styled-card-description ${Classes}`,undefined,PropSet.RestProps,Value,ContentList)
     })
   }
 
@@ -26528,21 +25384,14 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** allow setting "collapsed" externally and changing it internally ****/
 
-      const externalCollapse = useRef(collapsed ?? false)
-      const internalCollapse = useRef(collapsed ?? false)
-
-      if ((collapsed != null) && (collapsed !== externalCollapse.current)) {
-        internalCollapse.current = collapsed
-        externalCollapse.current = collapsed
-      } else {
-        collapsed = internalCollapse.current
-      }
+      const CollapseRef = useHybridValue(collapsed,false)
+      collapsed = CollapseRef.current
 
       const toggleCollapse = useCallback((Event:any):void => {
         consumeEvent(Event)
 
-        const newCollapse = ! internalCollapse.current
-        internalCollapse.current = newCollapse
+        const newCollapse = ! CollapseRef.current
+        CollapseRef.current = newCollapse
         rerender()
 
         executeCallback(
@@ -26619,11 +25468,8 @@ JCL_RealDrawEditor.registerEffect({
       background:currentColor;
       pointer-events:none;
       transition:transform 0.2s ease;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_ChevronLeft}
+      ${CSS_MaskIcon}
     }
 
     .jcl-component.styled-sidebar.collapsed > .collapse-button > .chevron {
@@ -26799,49 +25645,19 @@ JCL_RealDrawEditor.registerEffect({
 /**** styledSidebarHeader ****/
 
   export function styledSidebarHeader (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-sidebar-header ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-sidebar-header',PropSet)
   }
 
 /**** styledSidebarContent ****/
 
   export function styledSidebarContent (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-sidebar-content ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-sidebar-content',PropSet)
   }
 
 /**** styledSidebarFooter ****/
 
   export function styledSidebarFooter (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-sidebar-footer ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-sidebar-footer',PropSet)
   }
 
   installStylesheetFor('jcl-component.styled-sidebar-sections',`
@@ -27292,11 +26108,7 @@ JCL_RealDrawEditor.registerEffect({
         const onClick      = acceptableFunction(PropSet.onClick)
 
       Value = Value ?? JCL_empty
-      const [ actualValue,actualDisabling ] = (
-        ValueIsSpecial(Value)
-        ? [ undefined,disabled || Value.disabled ]
-        : [ Value,disabled ]
-      )
+      const { actualValue,actualDisabling } = resolvedSpecialValue(Value,disabled)
 
       const checked = (actualValue == true)
 
@@ -27312,7 +26124,7 @@ JCL_RealDrawEditor.registerEffect({
         )
       }, [ actualDisabling, onClick,onValueInput ])
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-switch ${SizeClass} ${actualDisabling ? 'disabled' : ''} ${Classes}"
         style=${Style}
@@ -27439,19 +26251,16 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div role="radiogroup"
         class="jcl-component styled-multi-switch ${SizeClass} ${Classes}"
         style=${Style} ...${PropSet.RestProps}
       >
         ${Options.map((Option:string) => {
-          let   OptionValue    = Option.replace(/:.*$/,'').trim()
-          let   OptionLabel    = Option.replace(/^[^:]*:/,'').trim()
-          const OptionDisabled = (OptionLabel[0] === '-')
-
-          if (OptionValue === Option) { OptionValue = OptionValue.replace(/^-/,'') }
-          if (OptionDisabled)         { OptionLabel = OptionLabel.replace(/^-/,'') }
+          const {
+            Value:OptionValue, Label:OptionLabel, disabled:OptionDisabled
+          } = parsedOption(Option)
 
           const showsIcon = ValueIsOneOf(OptionLabel,JCL_FAIconNames)
 
@@ -27603,12 +26412,9 @@ JCL_RealDrawEditor.registerEffect({
         style=${Style} ...${PropSet.RestProps}
       >
         ${Options.map((Option:string) => {
-          let   OptionValue    = Option.replace(/:.*$/,'').trim()
-          let   OptionLabel    = Option.replace(/^[^:]*:/,'').trim()
-          const OptionDisabled = (OptionLabel[0] === '-')
-
-          if (OptionValue === Option) { OptionValue = OptionValue.replace(/^-/,'') }
-          if (OptionDisabled)         { OptionLabel = OptionLabel.replace(/^-/,'') }
+          const {
+            Value:OptionValue, Label:OptionLabel, disabled:OptionDisabled
+          } = parsedOption(Option)
 
           return html`<label class="option">
             <${styledRadiobutton} Size=${Size}
@@ -27683,10 +26489,10 @@ JCL_RealDrawEditor.registerEffect({
         const disabled     = acceptableBoolean (PropSet.disabled) ?? false
         const onValueInput = acceptableFunction(PropSet.onValueInput)
 
-      const OptionList = Options.map((Option:string) => ({
-        Value:Option.replace(/:.*$/,'').trim(),
-        Label:Option.replace(/^[^:]*:/,'').trim(),
-      }))
+      const OptionList = Options.map((Option:string) => {
+        const { Value,Label } = parsedOption(Option)
+        return { Value,Label }
+      })
 
       const LabelOfValue = (Value:any) => (
         OptionList.find((Option:any) => Option.Value === Value)?.Label
@@ -27827,7 +26633,7 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      const SizeClass = (Size === 'normal' ? '' : 'size-'+Size)
+      const SizeClass = SizeClassFor(Size)
 
       return html`<div class="jcl-component styled-combobox ${Classes}" style=${Style}>
         <input type="text" class="jcl-component styled-input ${SizeClass}"
@@ -27863,11 +26669,8 @@ JCL_RealDrawEditor.registerEffect({
       background:var(--jcl-muted-fg-color,#737373);
       opacity:0.5;
       pointer-events:none;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_ChevronDown}
+      ${CSS_MaskIcon}
     }
   `)
 
@@ -27904,11 +26707,8 @@ JCL_RealDrawEditor.registerEffect({
       content:''; display:block;
       width:16px; height:16px; margin-left:auto;
       background:currentColor;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_Checkmark}
+      ${CSS_MaskIcon}
     }
 
     .jcl-combobox-popup > .empty {
@@ -28017,9 +26817,7 @@ JCL_RealDrawEditor.registerEffect({
       pointer-events:none;
       -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4'/%3E%3Cpath d='M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
               mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4'/%3E%3Cpath d='M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
 
   /**** the month view needs no extra panel padding ****/
@@ -28056,22 +26854,15 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** allow setting "activeIndex" externally and changing it internally ****/
 
-      const externalActiveIndex = useRef(activeIndex ?? 0)
-      const internalActiveIndex = useRef(activeIndex ?? 0)
-
-      if ((activeIndex != null) && (activeIndex !== externalActiveIndex.current)) {
-        internalActiveIndex.current = activeIndex
-        externalActiveIndex.current = activeIndex
-      } else {
-        activeIndex = internalActiveIndex.current
-      }
+      const activeIndexRef = useHybridValue(activeIndex,0)
+      activeIndex = activeIndexRef.current
 
     /**** tab activation (by click or keyboard) ****/
 
       const activateTab = useCallback((Index:JCL_Ordinal, Event:Event):void => {
         if (disabled) { return consumingEvent(Event) }
 
-        internalActiveIndex.current = Index
+        activeIndexRef.current = Index
         rerender()
 
         executeCallback('styledTabStrip callback "onActivationChange"', onActivationChange, Index)
@@ -28246,8 +27037,7 @@ JCL_RealDrawEditor.registerEffect({
         style=${Style} aria-label="breadcrumb" ...${PropSet.RestProps}
       ><ol>
         ${Items.map((Item:string, Index:number) => {
-          const ItemValue = Item.replace(/:.*$/,'').trim()
-          const ItemLabel = Item.replace(/^[^:]*:/,'').trim()
+          const { Value:ItemValue, Label:ItemLabel } = parsedOption(Item)
 
           const renderedItem = (
             ItemLabel === '...'
@@ -28308,11 +27098,8 @@ JCL_RealDrawEditor.registerEffect({
       content:''; display:block;
       width:14px; height:14px;
       background:currentColor;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_ChevronRight}
+      ${CSS_MaskIcon}
     }
   `)
 
@@ -28432,36 +27219,22 @@ JCL_RealDrawEditor.registerEffect({
       width:16px; height:16px;
       background:currentColor;
       pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
 
     .jcl-component.styled-pagination .chevron-left {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronLeft}
     }
 
     .jcl-component.styled-pagination .chevron-right {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronRight}
     }
   `)
 
 /**** styledAccordion ****/
 
   export function styledAccordion (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<div class="jcl-component styled-accordion ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        ${PropSet.children}
-      </>`
-    })
+    return renderedStyledContainer('div','styled-accordion',PropSet)
   }
 
 /**** styledAccordionFold ****/
@@ -28483,15 +27256,8 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** allow setting "expanded" externally and changing it internally ****/
 
-      const externalExpansion = useRef(expanded ?? false)
-      const internalExpansion = useRef(expanded ?? false)
-
-      if ((expanded != null) && (expanded !== externalExpansion.current)) {
-        internalExpansion.current = expanded
-        externalExpansion.current = expanded
-      } else {
-        expanded = internalExpansion.current
-      }
+      const ExpansionRef = useHybridValue(expanded,false)
+      expanded = ExpansionRef.current
 
     /**** toggle expansion (a real button handles the keyboard itself) ****/
 
@@ -28499,8 +27265,8 @@ JCL_RealDrawEditor.registerEffect({
         consumeEvent(Event)
         if (disabled) { return }
 
-        const newExpansion = ! internalExpansion.current
-        internalExpansion.current = newExpansion
+        const newExpansion = ! ExpansionRef.current
+        ExpansionRef.current = newExpansion
         rerender()
 
         executeCallback('styledAccordionFold callback "onExpansionChange"', onExpansionChange, newExpansion)
@@ -28604,11 +27370,8 @@ JCL_RealDrawEditor.registerEffect({
       background:var(--jcl-muted-fg-color,#737373);
       pointer-events:none;
       transition:transform 0.2s ease;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_ChevronDown}
+      ${CSS_MaskIcon}
     }
 
     .jcl-component.styled-accordion-fold > .trigger[aria-expanded="true"] > .chevron {
@@ -28840,10 +27603,11 @@ JCL_RealDrawEditor.registerEffect({
 // uses a locale-aware string comparison unless a column provides its own
 // "Comparator" - "SortKey"/"SortOrder", "Selection" and "Page" all follow
 // the usual hybrid pattern (externally settable, internally changed and
-// reported through their callbacks). Selections are lists of the row
-// objects themselves (i.e. use object identity), "PageSize" activates a
-// "styledPagination" underneath, "maxHeight" a scrollable table body with
-// a sticky header, "striped" tints every other body row
+// reported through their callbacks, see "useHybridValue"). Selections are
+// lists of the row objects themselves (i.e. use object identity),
+// "PageSize" activates a "styledPagination" underneath, "maxHeight" a
+// scrollable table body with a sticky header, "striped" tints every other
+// body row
 
   export function styledDataTable (PropSet:Indexable):any {
     return safelyRendered(() => {
@@ -28869,66 +27633,46 @@ JCL_RealDrawEditor.registerEffect({
 
       const rerender = useRerenderer()
 
-      const ColumnList = Columns.map((Column:any) => (
-        ValueIsTextline(Column)
-        ? { Key:Column.replace(/:.*$/,'').trim(), Label:Column.replace(/^[^:]*:/,'').trim() }
-        : Column
-      ))
+      const ColumnList = Columns.map((Column:any) => {
+        if (! ValueIsTextline(Column)) { return Column }
+        const { Value:Key, Label } = parsedOption(Column)
+        return { Key,Label }
+      })
 
     /**** hybrid sorting state ****/
 
-      const externalSortKey   = useRef(SortKey)
-      const internalSortKey   = useRef(SortKey)
-      const externalSortOrder = useRef(SortOrder ?? 'ascending')
-      const internalSortOrder = useRef(SortOrder ?? 'ascending')
+      const SortKeyRef   = useHybridValue(SortKey)
+      const SortOrderRef = useHybridValue(SortOrder,'ascending')
 
-      if ((SortKey != null) && (SortKey !== externalSortKey.current)) {
-        internalSortKey.current = SortKey
-        externalSortKey.current = SortKey
-      } else {
-        SortKey = internalSortKey.current
-      }
-
-      if ((SortOrder != null) && (SortOrder !== externalSortOrder.current)) {
-        internalSortOrder.current = SortOrder
-        externalSortOrder.current = SortOrder
-      } else {
-        SortOrder = internalSortOrder.current
-      }
+      SortKey   = SortKeyRef.current
+      SortOrder = SortOrderRef.current
 
       const toggleSort = useCallback((Column:any, Event:any):void => {
         consumeEvent(Event)
 
-        if (internalSortKey.current === Column.Key) {
-          internalSortOrder.current = (
-            internalSortOrder.current === 'ascending' ? 'descending' : 'ascending'
+        if (SortKeyRef.current === Column.Key) {
+          SortOrderRef.current = (
+            SortOrderRef.current === 'ascending' ? 'descending' : 'ascending'
           )
         } else {
-          internalSortKey.current   = Column.Key
-          internalSortOrder.current = 'ascending'
+          SortKeyRef.current   = Column.Key
+          SortOrderRef.current = 'ascending'
         }
         rerender()
 
         executeCallback(
           'styledDataTable callback "onSortChange"', onSortChange,
-          internalSortKey.current, internalSortOrder.current
+          SortKeyRef.current, SortOrderRef.current
         )
       }, [ onSortChange, rerender ])
 
     /**** hybrid selection state (using object identity) ****/
 
-      const externalSelection = useRef(Selection ?? [])
-      const internalSelection = useRef(Selection ?? [])
-
-      if ((Selection != null) && (Selection !== externalSelection.current)) {
-        internalSelection.current = Selection
-        externalSelection.current = Selection
-      } else {
-        Selection = internalSelection.current
-      }
+      const SelectionRef = useHybridValue(Selection,[])
+      Selection = SelectionRef.current
 
       function changeSelection (newSelection:any[], Event:any):void {
-        internalSelection.current = newSelection
+        SelectionRef.current = newSelection
         rerender()
 
         executeCallback(
@@ -28975,19 +27719,11 @@ JCL_RealDrawEditor.registerEffect({
         PageSize == null ? 1 : Math.max(1,Math.ceil(shownData.length/PageSize))
       )
 
-      const externalPage = useRef(Page ?? 1)
-      const internalPage = useRef(Page ?? 1)
-
-      if ((Page != null) && (Page !== externalPage.current)) {
-        internalPage.current = Page
-        externalPage.current = Page
-      } else {
-        Page = internalPage.current
-      }
-      Page = Math.min(Math.max(1,Page!),PageCount)
+      const PageRef = useHybridValue(Page,1)
+      Page = Math.min(Math.max(1,PageRef.current!),PageCount)
 
       const changePage = useCallback((newPage:number, Event:any):void => {
-        internalPage.current = newPage
+        PageRef.current = newPage
         rerender()
 
         executeCallback(
@@ -29115,17 +27851,13 @@ JCL_RealDrawEditor.registerEffect({
       background:currentColor;
       opacity:0;
       pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      ${CSS_MaskIcon}
+      ${CSS_ChevronDown}
     }
 
     .jcl-component.styled-data-table .sorter > .indicator.ascending {
       opacity:1;
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 15-6-6-6 6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 15-6-6-6 6'/%3E%3C/svg%3E");
+      ${CSS_ChevronUp}
     }
 
     .jcl-component.styled-data-table .sorter > .indicator.descending {
@@ -29173,29 +27905,22 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** allow setting "Month" externally and changing it internally ****/
 
-      const externalMonth = useRef(Month ?? defaultMonth)
-      const internalMonth = useRef(Month ?? defaultMonth)
-
-      if ((Month != null) && (Month !== externalMonth.current)) {
-        internalMonth.current = Month
-        externalMonth.current = Month
-      } else {
-        Month = internalMonth.current
-      }
+      const MonthRef = useHybridValue(Month,defaultMonth)
+      Month = MonthRef.current
 
       const [ shownYear,shownMonth ] = Month.split('-').map(Number)
 
       const shiftMonth = useCallback((Delta:number, Event:any):void => {
         consumeEvent(Event)
 
-        const [ Year,Month ] = internalMonth.current.split('-').map(Number)
+        const [ Year,Month ] = MonthRef.current.split('-').map(Number)
         const shiftedDate = new Date(Year,Month-1 + Delta,1)
         const shiftedMonth = (
           shiftedDate.getFullYear() + '-' +
           String(shiftedDate.getMonth()+1).padStart(2,'0')
         )
 
-        internalMonth.current = shiftedMonth
+        MonthRef.current = shiftedMonth
         rerender()
 
         executeCallback(
@@ -29329,17 +28054,13 @@ JCL_RealDrawEditor.registerEffect({
       width:16px; height:16px;
       background:currentColor;
       pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
     .jcl-component.styled-month-view .chevron-left {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronLeft}
     }
     .jcl-component.styled-month-view .chevron-right {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronRight}
     }
 
   /**** the day grid itself ****/
@@ -29415,7 +28136,7 @@ JCL_RealDrawEditor.registerEffect({
 // picking a day invokes "onValueInput" with its ISO date
 
   export const JCL_QuarterPattern = '\\d{4}-Q[1-4]'
-  export const JCL_QuarterRegExp  = /^\d{4}-Q[1-4]$/
+  export const JCL_QuarterRegExp  = RegExpForPattern(JCL_QuarterPattern)
 
   export function ValueIsQuarter (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_QuarterRegExp)
@@ -29446,15 +28167,8 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** allow setting "Quarter" externally and changing it internally ****/
 
-      const externalQuarter = useRef(Quarter ?? defaultQuarter)
-      const internalQuarter = useRef(Quarter ?? defaultQuarter)
-
-      if ((Quarter != null) && (Quarter !== externalQuarter.current)) {
-        internalQuarter.current = Quarter
-        externalQuarter.current = Quarter
-      } else {
-        Quarter = internalQuarter.current
-      }
+      const QuarterRef = useHybridValue(Quarter,defaultQuarter)
+      Quarter = QuarterRef.current
 
       const shownYear          = Number(Quarter.slice(0,4))
       const shownQuarterNumber = Number(Quarter.slice(6))
@@ -29462,14 +28176,14 @@ JCL_RealDrawEditor.registerEffect({
       const shiftQuarter = useCallback((Delta:number, Event:any):void => {
         consumeEvent(Event)
 
-        const Year           = Number(internalQuarter.current.slice(0,4))
-        const QuarterNumber  = Number(internalQuarter.current.slice(6))
+        const Year           = Number(QuarterRef.current.slice(0,4))
+        const QuarterNumber  = Number(QuarterRef.current.slice(6))
         const QuarterCount   = Year*4 + (QuarterNumber-1) + Delta
         const shiftedQuarter = (
           Math.floor(QuarterCount/4) + '-Q' + (QuarterCount % 4 + 1)
         )
 
-        internalQuarter.current = shiftedQuarter
+        QuarterRef.current = shiftedQuarter
         rerender()
 
         executeCallback(
@@ -29562,17 +28276,13 @@ JCL_RealDrawEditor.registerEffect({
       width:16px; height:16px;
       background:currentColor;
       pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
     .jcl-component.styled-quarter-view .chevron-left {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronLeft}
     }
     .jcl-component.styled-quarter-view .chevron-right {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronRight}
     }
 
   /**** the inner month views lose their own navigation ****/
@@ -29625,21 +28335,14 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** allow setting "Year" externally and changing it internally ****/
 
-      const externalYear = useRef(Year ?? defaultYear)
-      const internalYear = useRef(Year ?? defaultYear)
-
-      if ((Year != null) && (Year !== externalYear.current)) {
-        internalYear.current = Year
-        externalYear.current = Year
-      } else {
-        Year = internalYear.current
-      }
+      const YearRef = useHybridValue(Year,defaultYear)
+      Year = YearRef.current
 
       const shiftYear = useCallback((Delta:number, Event:any):void => {
         consumeEvent(Event)
 
-        const shiftedYear = internalYear.current + Delta
-        internalYear.current = shiftedYear
+        const shiftedYear = YearRef.current + Delta
+        YearRef.current = shiftedYear
         rerender()
 
         executeCallback(
@@ -29731,17 +28434,13 @@ JCL_RealDrawEditor.registerEffect({
       width:16px; height:16px;
       background:currentColor;
       pointer-events:none;
-      -webkit-mask-size:contain;           mask-size:contain;
-      -webkit-mask-position:center center; mask-position:center center;
-      -webkit-mask-repeat:no-repeat;       mask-repeat:no-repeat;
+      ${CSS_MaskIcon}
     }
     .jcl-component.styled-year-view .chevron-left {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronLeft}
     }
     .jcl-component.styled-year-view .chevron-right {
-      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
-              mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+      ${CSS_ChevronRight}
     }
 
   /**** the inner month views lose their own navigation ****/
@@ -29995,6 +28694,147 @@ JCL_RealDrawEditor.registerEffect({
       display:contents;
     }
   `)
+/**** validatedKeySetFrom ****/
+
+// used by "controlled" components with externally kept element lists (like
+// NoteBoard or DataFlowProcessView) which have to reject duplicate keys
+
+  function validatedKeySetFrom (
+    KeyList:string[], Description:string
+  ):Set<string> {
+    const KeySet:Set<string> = new Set()
+      KeyList.forEach((Key:string) => {
+        if (KeySet.has(Key)) throwError(
+          `InvalidArguments: the given ${Description} contain entries with identical keys`
+        )
+        KeySet.add(Key)
+      })
+    return KeySet
+  }
+
+/**** assertNoDuplicates ****/
+
+// rejects lists with double entries (compared by object identity)
+
+  function assertNoDuplicates (List:any[], Description:string):void {
+    const ItemSet:Set<any> = new Set()
+      List.forEach((Item:any) => {
+        if (ItemSet.has(Item)) throwError(
+          `InvalidArguments: the given ${Description} contain double entries`
+        )
+        ItemSet.add(Item)
+      })
+  }
+
+/**** sanitizedSelection ****/
+
+// drops unknown keys and double entries from an external selection key list
+
+  function sanitizedSelection (
+    selectedKeys:string[], KnownKeySet:Set<string>
+  ):string[] {
+    const seen:Set<string> = new Set()
+    return selectedKeys.filter((Key:string) => {
+      if (KnownKeySet.has(Key) && ! seen.has(Key)) {
+        seen.add(Key)
+        return true
+      } else {
+        return false
+      }
+    })
+  }
+
+/**** isAdditive ****/
+
+// tells whether a pointer event is meant to extend an existing selection
+
+  function isAdditive (Event:Indexable|null):boolean {
+    return (Event != null) && (
+      Event.shiftKey || Event.metaKey || Event.ctrlKey
+    )
+  }
+
+/**** clamped ****/
+
+  function clamped (Value:number, Minimum:number, Maximum:number):number {
+    return Math.max(Minimum, Math.min(Value,Math.max(Minimum,Maximum)))
+  }
+
+/**** SizeClassFor ****/
+
+// maps the "Size" prop of styled components onto its CSS class
+
+  function SizeClassFor (Size:string):string {
+    return (Size === 'normal' ? '' : 'size-'+Size)
+  }
+
+/**** PanningVelocity ****/
+
+// computes the edge-sensor panning velocity for NoteBoard and
+// DataFlowProcessView - the speed grows linearly with the penetration depth
+// into the "SensorWidth" wide zone along the scroller edges
+
+  function PanningVelocity (
+    ScrollerBox:Indexable, lastClientX:number, lastClientY:number,
+    SensorWidth:number, maxPanningSpeed:number
+  ):{ vx:number, vy:number } {
+    function PanningSpeed (lowerDepth:number, upperDepth:number):number {
+      switch (true) {
+        case (lowerDepth > 0):
+          return -maxPanningSpeed * Math.min(1,lowerDepth/SensorWidth)
+        case (upperDepth > 0):
+          return  maxPanningSpeed * Math.min(1,upperDepth/SensorWidth)
+        default:
+          return 0
+      }
+    }
+
+    const vx = ((SensorWidth === 0) ? 0 : PanningSpeed(
+      SensorWidth - (lastClientX-ScrollerBox.left),
+      SensorWidth - (ScrollerBox.right-lastClientX)
+    ))
+    const vy = ((SensorWidth === 0) ? 0 : PanningSpeed(
+      SensorWidth - (lastClientY-ScrollerBox.top),
+      SensorWidth - (ScrollerBox.bottom-lastClientY)
+    ))
+    return { vx,vy }
+  }
+
+/**** clampedPanningInterval ****/
+
+// returns the (clamped) time since the last panning step and memoizes the
+// given timestamp in the current gesture
+
+  function clampedPanningInterval (
+    Gesture:Indexable, Timestamp:number
+  ):number {
+    const dt = Math.min(0.1, (
+      Gesture.PanningTimestamp == null
+      ? 0
+      : (Timestamp-Gesture.PanningTimestamp)/1000
+    ))
+    Gesture.PanningTimestamp = Timestamp
+    return dt
+  }
+
+/**** forwardedCallbacksFor ****/
+
+// builds stable wrappers which always invoke the *current* callbacks of a
+// "CallbackRef" - used by components hosting long-lived editor engines
+// (like BitmapEditor or RealDrawEditor)
+
+  function forwardedCallbacksFor (
+    CallbackRef:Indexable, CallbackNames:string[]
+  ):Indexable {
+    const CallbackSet:Indexable = {}
+      CallbackNames.forEach((Name:string) => {
+        CallbackSet[Name] = (
+          (...ArgList:any[]) => CallbackRef.current[Name]?.(...ArgList)
+        )
+      })
+    return CallbackSet
+  }
+
 /**** consume/consumingEvent ****/
 
   export function consumeEvent (Event:Event, completely:boolean = false):void {
@@ -30153,6 +28993,9 @@ JCL_RealDrawEditor.registerEffect({
       Spreadsheet:legacySpreadsheetEditor, KanbanBoard:legacyKanbanBoard,
         registerSpreadsheetFormula, registerSpreadsheetFormulas,
       NoteBoard:legacyNoteBoard, ChatView:legacyChatView,
+        ChatViewAssistantExtra:legacyChatViewAssistantExtra,
+        ChatViewUserExtra:legacyChatViewUserExtra,
+        ChatViewControls:legacyChatViewControls,
       DataFlowProcessView:legacyDataFlowProcessView, WorldPositionOfPort,
       QRCodeView:legacyQRCodeView,
     },
