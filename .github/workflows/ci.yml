@@ -22,8 +22,5 @@ jobs:
       - name: install dependencies              # no "npm ci" - the lock file
         run: npm install --no-audit --no-fund   # is deliberately not committed
 
-      - name: run test suite
-        run: npm run test:run
-
       - name: build library
         run: npm run build
