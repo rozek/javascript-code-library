@@ -40331,7 +40331,7 @@ typeof window < "u" && window.addEventListener("unhandledrejection", (n) => {
     "caught unhandled error in Promise:",
     ((e = n.reason) == null ? void 0 : e.stack) ?? ((t = n.reason) == null ? void 0 : t.message),
     n
-  ), n.preventDefault();
+  );
 });
 function Ke(n) {
   debugger;

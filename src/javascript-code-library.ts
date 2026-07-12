@@ -74,7 +74,6 @@
         'caught unhandled error in Promise:',
         Event.reason?.stack ?? Event.reason?.message, Event
       )
-      Event.preventDefault()
     })
   }
 
