@@ -18563,8 +18563,12 @@ JCL_RealDrawEditor.registerEffect({
 // pressing "Tab" inserts a real tab character (see "TabKeyHandler") rather
 // than moving the focus to the next sticky note - which is also why "Content"
 // is validated with "ValueIsTextWithTabs" rather than plain "ValueIsText"
+//
+// n.b.: exported (unlike before) so that other hosts (e.g. WAT) may use this
+// content view outside of a "NoteBoard" as well - see "stickyTextNote" under
+// "WebApp Tinkerer (WAT)|WAT Runtime|...|built-in Behaviours|other Controls"
 
-  function stickyTextNote (PropSet:Indexable):any {
+  export function stickyTextNote (PropSet:Indexable):any {
     return safelyRendered(() => {
       PropSet = parseablePropSet(PropSet)
         const Content         = acceptableValue   (PropSet.Content,ValueIsTextWithTabs) ?? ''
@@ -18597,8 +18601,12 @@ JCL_RealDrawEditor.registerEffect({
 // string and corresponds to that editor's "Value". "Content" is validated
 // with "ValueIsTextWithTabs" since (e.g. pretty-printed) HTML may well
 // contain tab characters
+//
+// n.b.: exported (unlike before) so that other hosts (e.g. WAT) may use this
+// content view outside of a "NoteBoard" as well - see "stickyHTMLNote" under
+// "WebApp Tinkerer (WAT)|WAT Runtime|...|built-in Behaviours|other Controls"
 
-  function stickyHTMLNote (PropSet:Indexable):any {
+  export function stickyHTMLNote (PropSet:Indexable):any {
     return safelyRendered(() => {
       PropSet = parseablePropSet(PropSet)
         const Content         = acceptableValue   (PropSet.Content,ValueIsTextWithTabs) ?? ''
@@ -18631,8 +18639,14 @@ JCL_RealDrawEditor.registerEffect({
 // ancestor which provides "openDialog" through the dialog context - a
 // NoteBoard does not bring one along itself. boards with "text" and "html"
 // notes only do not need any
+//
+// n.b.: exported (unlike before) so that other hosts (e.g. WAT) may use this
+// content view outside of a "NoteBoard" as well - see "stickyMarkdownNote"
+// under "WebApp Tinkerer (WAT)|WAT Runtime|...|built-in Behaviours|other
+// Controls" (which wraps it in its own local "DialogBase" for exactly the
+// reason above)
 
-  function stickyMarkdownNote (PropSet:Indexable):any {
+  export function stickyMarkdownNote (PropSet:Indexable):any {
     return safelyRendered(() => {
       PropSet = parseablePropSet(PropSet)
         const Content         = acceptableValue   (PropSet.Content,ValueIsTextWithTabs) ?? ''
@@ -28710,7 +28724,14 @@ JCL_RealDrawEditor.registerEffect({
 
     disconnectedCallback () { render(null as unknown as VNode, this) }
   }
-//customElements.define('jcl-applet', JCL_AppletElement)              // not yet
+
+/**** defineJCLApplet - registers <jcl-applet/> on demand (tree-shakeable) ****/
+
+  export function defineJCLApplet (): void {
+    if (customElements.get('jcl-applet') == null) {
+      customElements.define('jcl-applet', JCL_AppletElement)
+    }
+  }
 
 //----------------------------------------------------------------------------//
 //                             AppletFailingWith                              //
@@ -29199,6 +29220,7 @@ JCL_RealDrawEditor.registerEffect({
         ChatViewAssistantExtra:legacyChatViewAssistantExtra,
         ChatViewUserExtra:legacyChatViewUserExtra,
         ChatViewControls:legacyChatViewControls,
+      stickyTextNote, stickyHTMLNote, stickyMarkdownNote,
       DataFlowProcessView:legacyDataFlowProcessView, WorldPositionOfPort,
       QRCodeView:legacyQRCodeView,
     },
@@ -30332,5 +30354,3 @@ JCL_RealDrawEditor.registerEffect({
       return Textline.charAt(0).toUpperCase() + Textline.slice(1)
     }
   }
-
-  customElements.define('jcl-applet', JCL_AppletElement)

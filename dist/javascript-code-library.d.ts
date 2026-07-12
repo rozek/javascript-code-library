@@ -195,6 +195,9 @@ export declare function Customizable(PropSet: Indexable): any;
 /**** DefaultSwatchSet — the shadcn/ui default palette ("neutral") ****/
 export declare const DefaultSwatchSet: JCL_SwatchSet;
 
+/**** defineJCLApplet - registers <jcl-applet/> on demand (tree-shakeable) ****/
+export declare function defineJCLApplet(): void;
+
 /**** Description ****/
 export declare function Description(PropSet: Indexable): any;
 
@@ -2146,6 +2149,12 @@ export declare function Spacer(PropSet: Indexable): any;
 
 export declare function stacked(PropSet: Indexable): any;
 
+export declare function stickyHTMLNote(PropSet: Indexable): any;
+
+export declare function stickyMarkdownNote(PropSet: Indexable): any;
+
+export declare function stickyTextNote(PropSet: Indexable): any;
+
 /**** styledAccordion ****/
 export declare function styledAccordion(PropSet: Indexable): any;
 
@@ -2622,6 +2631,9 @@ export declare const ui: {
         ChatViewAssistantExtra: typeof legacyChatViewAssistantExtra;
         ChatViewUserExtra: typeof legacyChatViewUserExtra;
         ChatViewControls: typeof legacyChatViewControls;
+        stickyTextNote: typeof stickyTextNote;
+        stickyHTMLNote: typeof stickyHTMLNote;
+        stickyMarkdownNote: typeof stickyMarkdownNote;
         DataFlowProcessView: typeof legacyDataFlowProcessView;
         WorldPositionOfPort: typeof WorldPositionOfPort;
         QRCodeView: typeof legacyQRCodeView;
