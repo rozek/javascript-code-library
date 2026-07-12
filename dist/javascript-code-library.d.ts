@@ -628,6 +628,14 @@ export declare class JCL_BitmapEditor {
     exportedBlob(Format?: string, Quality?: number): Promise<Blob>;
     /**** importImage - draws a given image onto the active layer ****/
     importImage(Source: string | Blob): Promise<void>;
+    /**** getDocument - serialises the complete layer structure ****/
+    getDocument(): Promise<string>;
+    /**** setDocument - restores a formerly serialised layer structure ****/
+    setDocument(Document: string | Indexable): Promise<void>;
+    /**** setValue - accepts a layer document or a plain image data URL ****/
+    setValue(Value: string): Promise<void>;
+    /**** Snapshot - flattens all visible layers into a single bitmap ****/
+    Snapshot(OptionSet?: Indexable): Promise<Blob>;
 }
 
 export declare type JCL_BitmapEditorLayer = {

@@ -15793,8 +15793,192 @@ console.warn(ErrorToShow)
       }
     }
 
-    // TODO a layered persistence format (JSON + PNG blobs) is still missing <<<<
+  /**** #DataURLFor - converts a given blob into a data URL ****/
 
+    async #DataURLFor (givenBlob:Blob):Promise<string> {
+      return await new Promise((resolve,reject) => {
+        const Reader = new FileReader()
+          Reader.onload  = () => resolve(Reader.result as string)
+          Reader.onerror = () => reject(new Error('could not read the given blob'))
+        Reader.readAsDataURL(givenBlob)
+      })
+    }
+
+  /**** getDocument - serialises the complete layer structure ****/
+  // the format is self-describing JSON with one (lossless) PNG data URL per
+  // layer - suitable for interrupting and resuming a painting session
+
+    async getDocument ():Promise<string> {
+      const LayerSetList = await Promise.all(this.LayerList.map(
+        async (Layer) => ({
+          Name:Layer.Name, isVisible:Layer.isVisible,
+          Opacity:Layer.Opacity, BlendMode:Layer.BlendMode,
+          Bitmap:await this.#DataURLFor(
+            await Layer.Canvas.convertToBlob({ type:'image/png' })
+          )
+        })
+      ))
+
+      return JSON.stringify({
+        Format:'jcl-bitmap-document@1',
+        Width:this.Width, Height:this.Height,
+        activeLayerIndex:this.activeLayerIndex,
+        Layers:LayerSetList
+      })
+    }
+
+  /**** setDocument - restores a formerly serialised layer structure ****/
+  // replaces the current document and clears the change history - without
+  // firing "onValueChange" (like "setValue" in the DrawingEditor)
+
+    async setDocument (Document:string|Indexable):Promise<void> {
+      let Doc:any = Document
+      if (ValueIsString(Doc)) {
+        try { Doc = JSON.parse(Doc) } catch (Signal:any) {
+          throwError('InvalidArgument: the given document is no valid JSON')
+        }
+      }
+
+      if (
+        ! ValueIsPlainObject(Doc) ||
+        (Doc.Format !== 'jcl-bitmap-document@1') ||
+        ! ValueIsOrdinal(Doc.Width) || ! ValueIsOrdinal(Doc.Height) ||
+        ! ValueIsListSatisfying(Doc.Layers,ValueIsPlainObject) ||
+        (Doc.Layers.length === 0)
+      ) throwError(
+        'InvalidArgument: the given document is no valid bitmap document'
+      )
+
+    /**** decode all layer bitmaps first - the current document remains ****/
+    /**** untouched if any of them fails                                ****/
+
+      const BitmapList = await Promise.all(Doc.Layers.map(
+        async (LayerSet:Indexable) => {
+          if (LayerSet.Bitmap == null) { return undefined }
+          try {
+            return await createImageBitmap(
+              await (await fetch(LayerSet.Bitmap)).blob()
+            )
+          } catch (Signal:any) {
+            throwError(`ImportFailure: could not decode a layer bitmap (${Signal})`)
+          }
+        }
+      ))
+
+    /**** only now replace the current document ****/
+
+      this.Width = Doc.Width; this.Height = Doc.Height
+      this.LayerList = []; this.activeLayerIndex = -1
+
+      Doc.Layers.forEach((LayerSet:Indexable, Index:number) => {
+        const Layer = this.newLayerNamed(
+          ValueIsTextline(LayerSet.Name) ? LayerSet.Name : 'Layer '+(Index+1)
+        )
+        this.configureLayer(Layer,LayerSet)
+
+        const Bitmap = BitmapList[Index]
+        if (Bitmap != null) {
+          Layer.Context.drawImage(Bitmap,0,0)
+          Bitmap.close()
+        }
+      })
+
+      this.activeLayerIndex = (
+        ValueIsOrdinal(Doc.activeLayerIndex)
+        ? Math.min(Doc.activeLayerIndex,this.LayerList.length-1)
+        : this.LayerList.length-1
+      )
+
+      this.#UndoStack.length = 0; this.#RedoStack.length = 0
+      this.reportUndoStateChange()
+      this.requestRendering()
+    }
+
+  /**** setValue - accepts a layer document or a plain image data URL ****/
+  // a plain bitmap becomes a single-layer document of the bitmap's own size
+
+    async setValue (Value:string):Promise<void> {
+      expectText('bitmap editor value',Value)
+
+      if (Value.trim().startsWith('{')) {
+        return await this.setDocument(Value)
+      }
+
+      try {
+        const Image = await createImageBitmap(await (await fetch(Value)).blob())
+
+        this.Width = Image.width; this.Height = Image.height
+        this.LayerList = []; this.activeLayerIndex = -1
+
+        const Layer = this.newLayerNamed('Background')
+          Layer.Context.drawImage(Image,0,0)
+        Image.close()
+      } catch (Signal:any) {
+        throwError(`ImportFailure: could not import the given image (${Signal})`)
+      }
+
+      this.#UndoStack.length = 0; this.#RedoStack.length = 0
+      this.reportUndoStateChange()
+      this.requestRendering()
+    }
+
+  /**** Snapshot - flattens all visible layers into a single bitmap ****/
+  // "Type" may be "png", "jpeg" or "webp" (GIF is deliberately unsupported -
+  // "convertToBlob" cannot encode it), "BackgroundColor" fills the ground
+  // ("transparent" or "none" keep the alpha channel, JPEG snapshots default
+  // to white), "Width"/"Height" scale the result (a single dimension keeps
+  // the aspect ratio)
+
+    async Snapshot (OptionSet?:Indexable):Promise<Blob> {
+      const { Type, Quality, BackgroundColor, Width,Height } = OptionSet ?? {}
+
+      if ((Type != null) && ! ValueIsOneOf(Type,[ 'png','jpeg','webp' ])) throwError(
+        'InvalidArgument: unsupported image type ' + quoted(''+Type)
+      )
+      const ImageType     = Type ?? 'png'
+      const chosenQuality = acceptableNumberInRange(Quality,0,1)
+
+      const chosenDimension = (Candidate:any):number|undefined => {
+        const Value = acceptableOrdinal(Candidate)
+        return ((Value == null) || (Value < 1) ? undefined : Value)
+      }
+      const givenWidth  = chosenDimension(Width)
+      const givenHeight = chosenDimension(Height)
+
+      const TargetWidth = givenWidth ?? (
+        givenHeight == null
+        ? this.Width
+        : Math.max(1,Math.round(givenHeight*this.Width/this.Height))
+      )
+      const TargetHeight = givenHeight ?? (
+        givenWidth == null
+        ? this.Height
+        : Math.max(1,Math.round(givenWidth*this.Height/this.Width))
+      )
+
+      let Background:any = BackgroundColor
+      if ((Background == null) && (ImageType === 'jpeg')) { Background = '#ffffff' }
+      const withBackground = (
+        (Background != null) &&
+        (Background !== 'transparent') && (Background !== 'none')
+      )
+
+      const Result  = new OffscreenCanvas(TargetWidth,TargetHeight)
+      const Context = Result.getContext('2d') as OffscreenCanvasRenderingContext2D
+        if (withBackground) {
+          Context.fillStyle = acceptableColor(Background) ?? '#ffffff'
+          Context.fillRect(0,0,TargetWidth,TargetHeight)
+        }
+        Context.imageSmoothingEnabled = true
+        Context.imageSmoothingQuality = 'high'
+        Context.drawImage(
+          this.compositedCanvas(), 0,0,this.Width,this.Height,
+          0,0,TargetWidth,TargetHeight
+        )
+      return await Result.convertToBlob({
+        type:'image/'+ImageType, quality:chosenQuality
+      })
+    }
 
   }
 
@@ -15808,7 +15992,8 @@ console.warn(ErrorToShow)
         const Classes      = acceptableTextline(PropSet.Class)  ?? ''
         const Width        = acceptableOrdinal (PropSet.Width)  ?? 800
         const Height       = acceptableOrdinal (PropSet.Height) ?? 600
-        const Value        = acceptableTextline(PropSet.Value)  // image data URL
+        const Value        = acceptableText    (PropSet.Value)
+                          // a layer document (JSON) or an image data URL
         const Tool         = acceptableTextline(PropSet.Tool)   ?? 'brush'
         const Color        = acceptableColor   (PropSet.Color)  ?? '#000000'
         const BackgroundColor = (
@@ -15858,14 +16043,27 @@ console.warn(ErrorToShow)
         Container.appendChild(ViewCanvas)
 
         const Editor = new JCL_BitmapEditor()
-          Editor.CallbackSet = forwardedCallbacksFor(CallbackRef, [
-            'onValueChange','onSelectionChange','onUndoStateChange',
-            'onColorPicked','onViewportChange',
-            'onTextRequest'                      // returns the entered text!
-          ])                                // s. "auxiliary functions"
+          Editor.CallbackSet = {
+            onValueChange:(...ArgList:any[]) =>
+              CallbackRef.current.onValueChange?.(...ArgList),
+            onSelectionChange:(...ArgList:any[]) =>
+              CallbackRef.current.onSelectionChange?.(...ArgList),
+            onUndoStateChange:(...ArgList:any[]) =>
+              CallbackRef.current.onUndoStateChange?.(...ArgList),
+            onColorPicked:(...ArgList:any[]) =>
+              CallbackRef.current.onColorPicked?.(...ArgList),
+            onViewportChange:(...ArgList:any[]) =>
+              CallbackRef.current.onViewportChange?.(...ArgList),
+            onTextRequest:(...ArgList:any[]) =>         // returns the entered
+              CallbackRef.current.onTextRequest?.(...ArgList)          // text!
+          }
           Editor.initialiseDocument(Width,Height)
           Editor.attachTo(ViewCanvas)
-          if (Value != null) { Editor.importImage(Value) }
+          if (Value != null) {          // a layer document or a plain data URL
+            Editor.setValue(Value).catch((Signal:any) => console.warn(
+              'BitmapEditor: could not apply the given "Value"',Signal
+            ))
+          }
         EditorRef.current = Editor
 
       /**** keep the view canvas in sync with its container size ****/
@@ -15878,9 +16076,13 @@ console.warn(ErrorToShow)
         const Handle = {
           Editor,                           // grants access to the full engine
           undo:() => Editor.undo(), redo:() => Editor.redo(),
-          newLayerNamed: (Name:string)       => Editor.newLayerNamed(Name),
+          newLayerNamed: (Name:string)        => Editor.newLayerNamed(Name),
           importImage:   (Source:string|Blob) => Editor.importImage(Source),
           exportedBlob:  (Format?:string)     => Editor.exportedBlob(Format),
+          getDocument:   ()                     => Editor.getDocument(),
+          setDocument:   (Doc:string|Indexable) => Editor.setDocument(Doc),
+          setValue:      (Value:string)         => Editor.setValue(Value),
+          Snapshot:      (OptionSet?:Indexable) => Editor.Snapshot(OptionSet),
           clearSelection:()                   => Editor.clearSelection(),
           cutSelection:  ()                   => Editor.cutSelection(),
           copySelection: ()                   => Editor.copySelection(),
@@ -15926,8 +16128,9 @@ console.warn(ErrorToShow)
         FontFamily,FontSize,FontWeight,FontStyle
       ])
 
-      // changing "Value", "Width" or "Height" after mounting is not yet
-      // supported <<<<
+      // the "Value", "Width" and "Height" *props* are still only applied upon
+      // mounting - use the handle's "setValue"/"setDocument" in order to
+      // replace the document of an already mounted editor
 
 
 
