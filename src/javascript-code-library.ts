@@ -10287,9 +10287,9 @@ console.warn(ErrorToShow)
       font-family:FontAwesome; font-size:22px; line-height:29px;
       pointer-events:auto;
     }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.plain::after     { content:"\f10c"; font-size:14px; position:relative; top:-3px }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed::after { content:"\f0da" }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded::after  { content:"\f0d7" }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.plain::after     { content:"\\f10c"; font-size:14px; position:relative; top:-3px }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed::after { content:"\\f0da" }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded::after  { content:"\\f0d7" }
 
   /**** LabelLine LabelView ****/
 
