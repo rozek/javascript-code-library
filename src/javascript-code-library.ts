@@ -4388,9 +4388,11 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** some common settings ****/
 
-  .disabled, [disabled] { opacity:0.4 }
-  .readonly             { background:none }
-  .pointer-unaware      { pointer-events:none }
+  :is(:disabled, .disabled, [disabled]):not(
+    :is(:disabled, .disabled, [disabled]) *
+  ) { opacity:0.4 }
+  .readonly        { background:none }
+  .pointer-unaware { pointer-events:none }
 
 /**** some special settings ****/
 
@@ -9231,8 +9233,9 @@ console.warn(ErrorToShow)
     }
 
     .jcl-component.flatlistview.placeholder {
-      display:flex; flex-flow:column nowrap; align-items:center; justify-content:center;
-      flex:1 0 auto; overflow:hidden;
+      display:flex; flex-flow:column nowrap;
+      align-items:center !important; justify-content:center;
+      flex:1 0 auto; width:100%; height:100%; overflow:hidden;
       background-color:#EEEEEE;
     }
     .jcl-component.flatlistview.placeholder > * {
@@ -9869,7 +9872,7 @@ console.warn(ErrorToShow)
 
     .jcl-component.nestedlistview.placeholder {
       display:flex; flex-flow:column nowrap; align-items:center; justify-content:center;
-      flex:1 0 auto; overflow:hidden;
+      flex:1 0 auto; width:100%; height:100%; overflow:hidden;
       background-color:#EEEEEE;
     }
     .jcl-component.nestedlistview.placeholder > * {
@@ -10016,7 +10019,6 @@ console.warn(ErrorToShow)
       </>`
     })
   }
-
 
 
 //------------------------------------------------------------------------------
