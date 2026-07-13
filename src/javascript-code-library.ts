@@ -6677,7 +6677,7 @@ console.warn(ErrorToShow)
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.textview',`
     .jcl-component.textview {
-      overflow:auto;
+      overflow:auto; overscroll-behavior:contain;
       font-size:14px; font-weight:normal; line-height:21px;
     }
     .jcl-component.textview.preformatted {
@@ -6705,7 +6705,7 @@ console.warn(ErrorToShow)
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.htmlview',`
     .jcl-component.htmlview {
-      overflow:auto;
+      overflow:auto; overscroll-behavior:contain;
       font-size:14px; font-weight:normal; line-height:21px;
     }
   `)
@@ -6803,7 +6803,7 @@ console.warn(ErrorToShow)
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.markdownview',`
     .jcl-component.markdownview {
-      overflow:auto;
+      overflow:auto; overscroll-behavior:contain;
       font-size:14px; font-weight:normal; line-height:21px;
     }
 
@@ -9630,7 +9630,7 @@ console.warn(ErrorToShow)
     .jcl-component.flatlistview {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:stretch !important;
-      overflow-x:auto; overflow-y:scroll;
+      overflow-x:auto; overflow-y:scroll; overscroll-behavior-y:contain;
       border:solid 1px #888888; border-radius:2px;
       background:#DDDDDD; padding:0px;
     }
@@ -10232,7 +10232,7 @@ console.warn(ErrorToShow)
 
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.nestedlistview',`
     .jcl-component.nestedlistview {
-      overflow-x:auto; overflow-y:scroll;
+      overflow-x:auto; overflow-y:scroll; overscroll-behavior-y:contain;
       border:solid 1px #888888; border-radius:2px;
       background:#DDDDDD; padding:0px;
     }
@@ -10287,9 +10287,9 @@ console.warn(ErrorToShow)
       font-family:FontAwesome; font-size:22px; line-height:29px;
       pointer-events:auto;
     }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.plain::after     { content:"\\f10c"; font-size:14px; position:relative; top:-3px }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed::after { content:"\\f0da" }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded::after  { content:"\\f0d7" }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.plain::after     { content:"\f10c"; font-size:14px; position:relative; top:-3px }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed::after { content:"\f0da" }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded::after  { content:"\f0d7" }
 
   /**** LabelLine LabelView ****/
 
@@ -11470,7 +11470,7 @@ console.warn(ErrorToShow)
     }
 
     .jcl-component.richtexteditor > .rte-root {
-      flex:1 1 auto; overflow:auto;
+      flex:1 1 auto; overflow:auto; overscroll-behavior:contain;
       position:relative;         /* anchors Squire's image-resize handles */
       width:100%; height:100%; padding:4px 6px;
       outline:none; cursor:text;
@@ -18481,7 +18481,7 @@ JCL_RealDrawEditor.registerEffect({
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.noteboard',`
     .jcl-component.noteboard {
       display:block !important; position:relative;
-      overflow:auto;
+      overflow:auto; overscroll-behavior:contain;
       border:solid 1px #888888; border-radius:2px;
       background-color:#EEEEEE; /* fills spare areas beside/below the pane */
       padding:0px;
@@ -20927,7 +20927,7 @@ JCL_RealDrawEditor.registerEffect({
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.dataflow-process-view',`
     .jcl-component.dataflow-process-view {
       display:block !important; position:relative;
-      overflow:auto;
+      overflow:auto; overscroll-behavior:contain;
       border:solid 1px #888888; border-radius:2px;
       background-color:#EEEEEE; /* fills spare areas beside/below the pane */
       padding:0px; outline:none;
@@ -21324,7 +21324,7 @@ JCL_RealDrawEditor.registerEffect({
 
     .jcl-component.legacy-chatview > .turns {
       display:flex; flex-flow:column nowrap;
-      flex:1 1 auto; min-height:0px; overflow-y:auto;
+      flex:1 1 auto; min-height:0px; overflow-y:auto; overscroll-behavior-y:contain;
       gap:12px; padding:16px;
     }
 
@@ -22078,7 +22078,7 @@ JCL_RealDrawEditor.registerEffect({
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.kanbanboard',`
     .jcl-component.kanbanboard {
       display:flex !important; flex-flow:row nowrap !important; align-items:stretch !important;
-      gap:10px; overflow-x:auto; overflow-y:hidden;
+      gap:10px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
       padding:0px;
     }
 
@@ -25245,7 +25245,7 @@ JCL_RealDrawEditor.registerEffect({
   /**** the scrollable list of groups and items ****/
 
     .jcl-component.styled-command-palette .list {
-      max-height:300px; overflow-y:auto;
+      max-height:300px; overflow-y:auto; overscroll-behavior-y:contain;
       padding:4px;
     }
 
@@ -25886,7 +25886,7 @@ JCL_RealDrawEditor.registerEffect({
       display:flex; flex-flow:column nowrap;
       flex:1 1 auto; min-height:0px;
       gap:8px; padding:8px;
-      overflow-y:auto;
+      overflow-y:auto; overscroll-behavior-y:contain;
     }
 
     .jcl-component.styled-sidebar-footer {
@@ -26895,7 +26895,7 @@ JCL_RealDrawEditor.registerEffect({
   installStylesheetFor('jcl-combobox-popup',`
     .jcl-combobox-popup {
       box-sizing:border-box;
-      display:block; position:fixed; overflow-y:auto;
+      display:block; position:fixed; overflow-y:auto; overscroll-behavior-y:contain;
       z-index:4000000;   /* above overlays, even those living within dialogs */
       border:solid 1px var(--jcl-border-color,#ebebeb);
       border-radius:var(--jcl-border-radius,8px);
@@ -27636,7 +27636,7 @@ JCL_RealDrawEditor.registerEffect({
   installStylesheetFor('jcl-component.styled-table',`
     .jcl-component.styled-table-container {
       position:relative;
-      width:100%; overflow:auto;
+      width:100%; overflow:auto; overscroll-behavior:contain;
     }
 
     .jcl-component.styled-table-container > .styled-table {
