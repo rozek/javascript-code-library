@@ -125,6 +125,19 @@ debugger               // not to be removed (helps debugging within the browser)
     return (Value:any):Value is T => Schema.safeParse(Value).success
   }
 
+/**** ValidatorQuadrupleFor - builds the usual validator quadruple ****/
+
+// returns the validators [ allowXXX,allowedXXX, expectXXX,expectedXXX ] for a
+// given classifier - meant to be destructured into four exported constants
+
+  function ValidatorQuadrupleFor (
+    Classifier:(Value:any) => boolean, Description:string
+  ):Function[] {
+    const allowValidator  = ValidatorForClassifier(Classifier,acceptNil,Description)
+    const expectValidator = ValidatorForClassifier(Classifier,rejectNil,Description)
+    return [ allowValidator,allowValidator, expectValidator,expectValidator ]
+  }
+
 /**** ValueIsIdentifier ****/
 
   const JCL_IdentifierPattern = /^[a-z$_][a-z$_0-9]*$/i
@@ -135,13 +148,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Identifier ****/
 
-  export const allowIdentifier = ValidatorForClassifier(
-    ValueIsIdentifier, acceptNil, 'JCL identifier'
-  ), allowedIdentifier = allowIdentifier
-
-  export const expectIdentifier = ValidatorForClassifier(
-    ValueIsIdentifier, rejectNil, 'JCL identifier'
-  ), expectedIdentifier = expectIdentifier
+  export const [ allowIdentifier,allowedIdentifier, expectIdentifier,expectedIdentifier ] =
+    ValidatorQuadrupleFor(ValueIsIdentifier,'JCL identifier')
 
 /**** ValueIsName ****/
 
@@ -151,13 +159,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Name ****/
 
-  export const allowName = ValidatorForClassifier(
-    ValueIsName, acceptNil, 'name'
-  ), allowedName = allowName
-
-  export const expectName = ValidatorForClassifier(
-    ValueIsName, rejectNil, 'name'
-  ), expectedName = expectName
+  export const [ allowName,allowedName, expectName,expectedName ] =
+    ValidatorQuadrupleFor(ValueIsName,'name')
 
 /**** ValueIsPath ****/
 
@@ -168,13 +171,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Path ****/
 
-  export const allowPath = ValidatorForClassifier(
-    ValueIsPath, acceptNil, 'path'
-  ), allowedPath = allowPath
-
-  export const expectPath = ValidatorForClassifier(
-    ValueIsPath, rejectNil, 'path'
-  ), expectedPath = expectPath
+  export const [ allowPath,allowedPath, expectPath,expectedPath ] =
+    ValidatorQuadrupleFor(ValueIsPath,'path')
 
 /**** ValueIsPhoneNumber ****/
 
@@ -185,13 +183,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]PhoneNumber ****/
 
-  export const allowPhoneNumber = ValidatorForClassifier(
-    ValueIsPhoneNumber, acceptNil, 'phone number'
-  ), allowedPhoneNumber = allowPhoneNumber
-
-  export const expectPhoneNumber = ValidatorForClassifier(
-    ValueIsPhoneNumber, rejectNil, 'phone number'
-  ), expectedPhoneNumber = expectPhoneNumber
+  export const [ allowPhoneNumber,allowedPhoneNumber, expectPhoneNumber,expectedPhoneNumber ] =
+    ValidatorQuadrupleFor(ValueIsPhoneNumber,'phone number')
 
 /**** ValueIsListOfEMailAddresses ****/
 
@@ -242,13 +235,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]ISOLanguageCode ****/
 
-  export const allowISOLanguageCode = ValidatorForClassifier(
-    ValueIsISOLanguageCode, acceptNil, 'ISO 639-1 Language Code'
-  ), allowedISOLanguageCode = allowISOLanguageCode
-
-  export const expectISOLanguageCode = ValidatorForClassifier(
-    ValueIsISOLanguageCode, rejectNil, 'ISO 639-1 Language Code'
-  ), expectedISOLanguageCode = expectISOLanguageCode
+  export const [ allowISOLanguageCode,allowedISOLanguageCode, expectISOLanguageCode,expectedISOLanguageCode ] =
+    ValidatorQuadrupleFor(ValueIsISOLanguageCode,'ISO 639-1 Language Code')
 
 /**** ValueIsMIMEType ****/
 
@@ -260,13 +248,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]MIMEType ****/
 
-  export const allowMIMEType = ValidatorForClassifier(
-    ValueIsMIMEType, acceptNil, 'MIME type'
-  ), allowedMIMEType = allowMIMEType
-
-  export const expectMIMEType = ValidatorForClassifier(
-    ValueIsMIMEType, rejectNil, 'MIME type'
-  ), expectedMIMEType = expectMIMEType
+  export const [ allowMIMEType,allowedMIMEType, expectMIMEType,expectedMIMEType ] =
+    ValidatorQuadrupleFor(ValueIsMIMEType,'MIME type')
 
 /**** ValueIsTextFormat ****/
 
@@ -339,13 +322,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Promise ****/
 
-  export const allowPromise = ValidatorForClassifier(
-    ValueIsPromise, acceptNil, 'JavaScript Promise or thenable'
-  ), allowedPromise = allowPromise
-
-  export const expectPromise = ValidatorForClassifier(
-    ValueIsPromise, rejectNil, 'JavaScript Promise or thenable'
-  ), expectedPromise = expectPromise
+  export const [ allowPromise,allowedPromise, expectPromise,expectedPromise ] =
+    ValidatorQuadrupleFor(ValueIsPromise,'JavaScript Promise or thenable')
 
 /**** ValueIsAbortSignal ****/
 
@@ -359,13 +337,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]AbortSignal ****/
 
-  export const allowAbortSignal = ValidatorForClassifier(
-    ValueIsAbortSignal, acceptNil, 'JavaScript abort signal'
-  ), allowedAbortSignal = allowAbortSignal
-
-  export const expectAbortSignal = ValidatorForClassifier(
-    ValueIsAbortSignal, rejectNil, 'JavaScript abort signal'
-  ), expectedAbortSignal = expectAbortSignal
+  export const [ allowAbortSignal,allowedAbortSignal, expectAbortSignal,expectedAbortSignal ] =
+    ValidatorQuadrupleFor(ValueIsAbortSignal,'JavaScript abort signal')
 
 //----------------------------------------------------------------------------//
 //                           System Characteristics                           //
@@ -1342,13 +1315,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Location ****/
 
-  export const allowLocation = ValidatorForClassifier(
-    ValueIsLocation, acceptNil, 'JCL coordinate'
-  ), allowedLocation = allowLocation
-
-  export const expectLocation = ValidatorForClassifier(
-    ValueIsLocation, rejectNil, 'JCL coordinate'
-  ), expectedLocation = expectLocation
+  export const [ allowLocation,allowedLocation, expectLocation,expectedLocation ] =
+    ValidatorQuadrupleFor(ValueIsLocation,'JCL coordinate')
 
 /**** ValueIsDimension ****/
 
@@ -1358,13 +1326,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Dimension ****/
 
-  export const allowDimension = ValidatorForClassifier(
-    ValueIsDimension, acceptNil, 'JCL dimension'
-  ), allowedDimension = allowDimension
-
-  export const expectDimension = ValidatorForClassifier(
-    ValueIsDimension, rejectNil, 'JCL dimension'
-  ), expectedDimension = expectDimension
+  export const [ allowDimension,allowedDimension, expectDimension,expectedDimension ] =
+    ValidatorQuadrupleFor(ValueIsDimension,'JCL dimension')
 
 /**** ValueIsPosition ****/
 
@@ -1376,13 +1339,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Position ****/
 
-  export const allowPosition = ValidatorForClassifier(
-    ValueIsPosition, acceptNil, 'JCL position'
-  ), allowedPosition = allowPosition
-
-  export const expectPosition = ValidatorForClassifier(
-    ValueIsPosition, rejectNil, 'JCL position'
-  ), expectedPosition = expectPosition
+  export const [ allowPosition,allowedPosition, expectPosition,expectedPosition ] =
+    ValidatorQuadrupleFor(ValueIsPosition,'JCL position')
 
 /**** ValueIsSize ****/
 
@@ -1394,13 +1352,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Size ****/
 
-  export const allowSize = ValidatorForClassifier(
-    ValueIsSize, acceptNil, 'JCL size'
-  ), allowedSize = allowSize
-
-  export const expectSize = ValidatorForClassifier(
-    ValueIsSize, rejectNil, 'JCL size'
-  ), expectedSize = expectSize
+  export const [ allowSize,allowedSize, expectSize,expectedSize ] =
+    ValidatorQuadrupleFor(ValueIsSize,'JCL size')
 
 /**** ValueIsGeometry ****/
 
@@ -1413,13 +1366,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Geometry ****/
 
-  export const allowGeometry = ValidatorForClassifier(
-    ValueIsGeometry, acceptNil, 'JCL geometry'
-  ), allowedGeometry = allowGeometry
-
-  export const expectGeometry = ValidatorForClassifier(
-    ValueIsGeometry, rejectNil, 'JCL geometry'
-  ), expectedGeometry = expectGeometry
+  export const [ allowGeometry,allowedGeometry, expectGeometry,expectedGeometry ] =
+    ValidatorQuadrupleFor(ValueIsGeometry,'JCL geometry')
 
 /**** ValueIsVNode (just an alias for my personal convenience) ****/
 
@@ -1433,13 +1381,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]PreactRef ****/
 
-  export const allowPreactRef = ValidatorForClassifier(
-    ValueIsPreactRef, acceptNil, 'preact component reference'
-  ), allowedPreactRef = allowPreactRef
-
-  export const expectPreactRef = ValidatorForClassifier(
-    ValueIsPreactRef, rejectNil, 'preact component reference'
-  ), expectedPreactRef = expectPreactRef
+  export const [ allowPreactRef,allowedPreactRef, expectPreactRef,expectedPreactRef ] =
+    ValidatorQuadrupleFor(ValueIsPreactRef,'preact component reference')
 
 /**** RegExpForPattern ****/
 
@@ -1811,25 +1754,15 @@ debugger               // not to be removed (helps debugging within the browser)
 
   export const ValueIsSwatch = ClassifierFor(JCL_SwatchSchema)
 
-  export const allowSwatch = ValidatorForClassifier(
-    ValueIsSwatch, acceptNil, 'JCL swatch'
-  ), allowedSwatch = allowSwatch
-
-  export const expectSwatch = ValidatorForClassifier(
-    ValueIsSwatch, rejectNil, 'JCL swatch'
-  ), expectedSwatch = expectSwatch
+  export const [ allowSwatch,allowedSwatch, expectSwatch,expectedSwatch ] =
+    ValidatorQuadrupleFor(ValueIsSwatch,'JCL swatch')
 
 /**** ValueIsSwatchSet ****/
 
   export const ValueIsSwatchSet = ClassifierFor(JCL_SwatchSetSchema)
 
-  export const allowSwatchSet = ValidatorForClassifier(
-    ValueIsSwatchSet, acceptNil, 'set of JCL swatches'
-  ), allowedSwatchSet = allowSwatchSet
-
-  export const expectSwatchSet = ValidatorForClassifier(
-    ValueIsSwatchSet, rejectNil, 'set of JCL swatches'
-  ), expectedSwatchSet = expectSwatchSet
+  export const [ allowSwatchSet,allowedSwatchSet, expectSwatchSet,expectedSwatchSet ] =
+    ValidatorQuadrupleFor(ValueIsSwatchSet,'set of JCL swatches')
 
 /**** activeSwatchStyle ****/
 
@@ -1874,13 +1807,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Locale ****/
 
-  export const allowLocale = ValidatorForClassifier(
-    ValueIsLocale, acceptNil, 'supported locale'
-  ), allowedLocale = allowLocale
-
-  export const expectLocale = ValidatorForClassifier(
-    ValueIsLocale, rejectNil, 'supported locale'
-  ), expectedLocale = expectLocale
+  export const [ allowLocale,allowedLocale, expectLocale,expectedLocale ] =
+    ValidatorQuadrupleFor(ValueIsLocale,'supported locale')
 /**** Locales that (are supported but) default to RTL ****/
 
   const _RTL_Locales:ReadonlySet<string> = new Set([
@@ -2050,13 +1978,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** allow/expect[ed]Dictionary ****/
 
-  export const allowDictionary = ValidatorForClassifier(
-    ValueIsDictionary, acceptNil, 'localization dictionary'
-  ), allowedDictionary = allowDictionary
-
-  export const expectDictionary = ValidatorForClassifier(
-    ValueIsDictionary, rejectNil, 'localization dictionary'
-  ), expectedDictionary = expectDictionary
+  export const [ allowDictionary,allowedDictionary, expectDictionary,expectedDictionary ] =
+    ValidatorQuadrupleFor(ValueIsDictionary,'localization dictionary')
 /**** _extensibleL10nDictionary ****/
 
   function _extensibleL10nDictionary (Base:JCL_L10nDictionary):JCL_L10nDictionary {
@@ -4659,6 +4582,139 @@ console.warn(ErrorToShow)
     }
   }
 
+/**** useNamedEntityList - the common list management of all bases ****/
+
+// overlays, dialogs and toasts are all kept in lists of named entries with
+// the same "close/closeAll/isOpen/snapshot" management around them
+
+  function useNamedEntityList (EntityLabel:string):Indexable {
+    const ListRef  = useRef<any[]>([])
+    const rerender = useRerenderer()
+
+  /**** closeEntity ****/
+
+    function closeEntity (Name:JCL_Name):void {
+      expectName(EntityLabel + ' name', Name)
+      const normalizedName = _normalizedName(Name)
+
+      const EntityList = ListRef.current
+      if (EntityList.length === 0) { return }
+
+      const EntityIndex = EntityList.findIndex(
+        (Entity:any) => (Entity[$normalizedName] === normalizedName)
+      )
+      if (EntityIndex < 0) { return }
+
+      ListRef.current = EntityList.filter(
+        (_:any, Index:number) => (Index !== EntityIndex)
+      )
+
+      rerender()
+    }
+
+  /**** closeAllEntities ****/
+
+    function closeAllEntities ():void {
+      if (ListRef.current.length === 0) { return }
+      ListRef.current = []
+      rerender()
+    }
+
+  /**** EntityIsOpen ****/
+
+    function EntityIsOpen (Name:JCL_Name):boolean {
+      expectName(EntityLabel + ' name', Name)
+      const normalizedName = _normalizedName(Name)
+
+      return (ListRef.current.findIndex(
+        (Entity:any) => (Entity[$normalizedName] === normalizedName)
+      ) >= 0)
+    }
+
+  /**** openEntities (snapshot) ****/
+
+    const openEntities:JCL_Name[] = ListRef.current.map(
+      (Entity:any) => Entity.Name as JCL_Name
+    )
+
+    return { ListRef, rerender, closeEntity, closeAllEntities, EntityIsOpen, openEntities }
+  }
+
+/**** validatedDescriptor - shared try/catch frame of descriptor validation ****/
+
+// enriches "MissingArgument"/"InvalidArgument" messages with a hint at the
+// described entity
+
+  function validatedDescriptor (
+    Value:any, EntityLabel:string, Validation:(Value:any) => void
+  ):void {
+    if (! ValueIsPlainObject(Value)) throwError(
+      'InvalidArgument: the given ' + EntityLabel + ' descriptor is no plain JavaScript object'
+    )
+
+    const Hint = (
+      Value.Name == null
+      ? EntityLabel + ' descriptor'
+      : 'descriptor for ' + EntityLabel + ' ' + quoted(Value.Name)
+    )
+
+    try {
+      Validation(Value)
+    } catch (Signal:any) {
+      if (
+        (Signal.name === 'MissingArgument') ||
+        (Signal.name === 'InvalidArgument')
+      ) {
+        Signal.message += ' in ' + Hint
+      }
+      throw Signal
+    }
+  }
+
+/**** useModalFocusTrap - Escape-to-close and Tab cycling for modal views ****/
+
+// returns a keyboard handler which closes a non-modal view upon "Escape" and
+// keeps the focus cycling among a modal view's focusable elements. With
+// "withFocusableHost", a focussed view element itself behaves like its first
+// focusable descendant (dialogs may own the focus themselves)
+
+  function useModalFocusTrap (
+    ViewRef:Indexable, View:Indexable, onEscape:Function,
+    withFocusableHost:boolean, Dependencies:any[]
+  ):(Event:KeyboardEvent) => void {
+    return useCallback((Event:KeyboardEvent) => {
+      if (Event.key === 'Escape') {
+        Event.stopPropagation()
+        if (! View.isModal) { onEscape(View.Name) }
+        return
+      }
+
+      if (View.isModal && (Event.key === 'Tab')) {
+        const ViewElement = ViewRef.current as HTMLElement|null
+        if (ViewElement == null) { return }
+
+        const focusable = Array.from(
+          ViewElement.querySelectorAll<HTMLElement>(focusableSelector)
+        ).filter((Element) => (Element.tabIndex >= 0))
+
+        if (focusable.length === 0) { Event.preventDefault(); return }
+
+        const first = focusable[0] as HTMLElement
+        const last  = focusable[focusable.length-1] as HTMLElement
+
+        const hostOwnsFocus = (
+          withFocusableHost && (document.activeElement === ViewElement)
+        )
+        switch (true) {
+          case Event.shiftKey && ((document.activeElement === first) || hostOwnsFocus):
+            Event.preventDefault(); last.focus(); break
+          case ! Event.shiftKey && (document.activeElement === last):
+            Event.preventDefault(); first.focus(); break
+        }
+      }
+    }, Dependencies)
+  }
+
 /**** useEventSwallower - consumes the given event types on an element ****/
 
 // used by "JCL_Underlay" and "JCL_ModalLayer" to block interactions with
@@ -4725,10 +4781,13 @@ console.warn(ErrorToShow)
         const APIRef  = acceptableValue   (PropSet.APIRef, ValueIsPreactRef)
       const ContentList = PropSet.children
 
-      const BaseRef        = useRef<HTMLDivElement>()
-      const OverlayListRef = useRef<JCL_$Overlay[]>([])
+      const BaseRef = useRef<HTMLDivElement>()
 
-      const rerender = useRerenderer()
+      const {                     // s. "shared Base Helpers" for these commons
+        ListRef:OverlayListRef, rerender,
+        closeEntity:closeOverlay, closeAllEntities:closeAllOverlays,
+        EntityIsOpen:OverlayIsOpen, openEntities:openOverlays,
+      } = useNamedEntityList('overlay')
 
     /**** openOverlay ****/
 
@@ -4786,61 +4845,10 @@ console.warn(ErrorToShow)
         openOverlay(Descriptor)
       }
 
-    /**** closeOverlay ****/
-
-      function closeOverlay (Name:JCL_Name):void {
-        expectName('overlay name', Name)
-        const normalizedName = _normalizedName(Name)
-
-        const OverlayList = OverlayListRef.current
-        if (OverlayList.length === 0) { return }
-
-        const idx = OverlayList.findIndex(
-          (Overlay:JCL_$Overlay) => (Overlay[$normalizedName] === normalizedName)
-        )
-        if (idx < 0) { return }
-
-        OverlayListRef.current = OverlayList.filter(
-          (_:any, i:number) => (i !== idx)
-        )
-
-        rerender()
-      }
-
-    /**** closeAllOverlays ****/
-
-      function closeAllOverlays ():void {
-        if (OverlayListRef.current.length === 0) { return }
-        OverlayListRef.current = []
-        rerender()
-      }
-
-    /**** openOverlays (snapshot) ****/
-
-      const openOverlays:JCL_Name[] = OverlayListRef.current.map(
-        (Overlay:JCL_$Overlay) => Overlay.Name as JCL_Name
-      )
-
-    /**** OverlayIsOpen ****/
-
-      function OverlayIsOpen (Name:JCL_Name):boolean {
-        expectName('overlay name', Name)
-        const normalizedName = _normalizedName(Name)
-
-        return (OverlayListRef.current.findIndex(
-          (Overlay:JCL_$Overlay) => (Overlay[$normalizedName] === normalizedName)
-        ) >= 0)
-      }
-
     /**** validateOverlayDescriptor ****/
 
       function validateOverlayDescriptor (Value:any):void {
-        if (! ValueIsPlainObject(Value)) throwError(
-          'InvalidArgument: the given overlay descriptor is no plain JavaScript object'
-        )
-
-        let Hint = 'overlay descriptor'
-        try {
+        validatedDescriptor(Value,'overlay', () => {
           expectName         ('Name',Value.Name)
           allowBoolean    ('isModal',Value.isModal)
           expectFunction ('Renderer',Value.Renderer)
@@ -4856,18 +4864,9 @@ console.warn(ErrorToShow)
           allowDimension('maxHeight',Value.maxHeight)
           allowString        ('Role',Value.Role)
           allowTextline     ('Label',Value.Label)
-
-          Hint = `descriptor for overlay "${Value.Name}"`
-        } catch (Signal:any) {
-          if (
-            (Signal.name === 'MissingArgument') ||
-            (Signal.name === 'InvalidArgument')
-          ) {
-            Signal.message += ' in ' + Hint
-          }
-          throw Signal
-        }
+        })
       }
+
 
 
     /**** publish API ****/
@@ -5098,36 +5097,11 @@ console.warn(ErrorToShow)
 
       const OverlayContext = useOverlayContext()
 
-      const handleKeyDown = useCallback((Event:KeyboardEvent) => {
-        if (Event.key === 'Escape') {
-          Event.stopPropagation()
-          if (! Overlay.isModal) {
-            OverlayContext.closeOverlay?.(Overlay.Name)
-          }
-          return
-        }
-
-        if (Overlay.isModal && Event.key === 'Tab') {
-          const OverlayElement = OverlayRef.current
-          if (OverlayElement == null) { return }
-
-          const focusableElements = Array.from(
-            OverlayElement.querySelectorAll(focusableSelector)
-          ) as HTMLElement[]
-
-          if (focusableElements.length === 0) { Event.preventDefault(); return }
-
-          const firstFocusable = focusableElements[0]
-          const lastFocusable  = focusableElements[focusableElements.length - 1]
-
-          switch (true) {
-            case Event.shiftKey && (document.activeElement === firstFocusable):
-              Event.preventDefault(); lastFocusable.focus(); break
-            case ! Event.shiftKey && (document.activeElement === lastFocusable):
-              Event.preventDefault(); firstFocusable.focus(); break
-          }
-        }
-      }, [ Overlay.isModal, Overlay.Name, OverlayContext ])
+      const handleKeyDown = useModalFocusTrap(
+        OverlayRef, Overlay,
+        (Name:JCL_Name) => OverlayContext.closeOverlay?.(Name), false,
+        [ Overlay.isModal, Overlay.Name, OverlayContext ]
+      )
 
     /**** render the overlay ****/
 
@@ -5233,10 +5207,13 @@ console.warn(ErrorToShow)
         const APIRef  = acceptableValue   (PropSet.APIRef, ValueIsPreactRef)
       const ContentList = PropSet.children
 
-      const BaseRef       = useRef<HTMLDivElement>()
-      const DialogListRef = useRef<JCL_$Dialog[]>([])
+      const BaseRef = useRef<HTMLDivElement>()
 
-      const rerenderDialogBase = useRerenderer()
+      const {                     // s. "shared Base Helpers" for these commons
+        ListRef:DialogListRef, rerender:rerenderDialogBase,
+        closeEntity:closeDialog, closeAllEntities:closeAllDialogs,
+        EntityIsOpen:DialogIsOpen, openEntities:openDialogs,
+      } = useNamedEntityList('dialog')
 
     /**** openDialog ****/
 
@@ -5273,53 +5250,6 @@ console.warn(ErrorToShow)
         rerenderDialogBase()
       }
 
-    /**** closeDialog ****/
-
-      function closeDialog (Name:JCL_Name):void {
-        expectName('dialog name', Name)
-        const normalizedName = _normalizedName(Name)
-
-        const DialogList = DialogListRef.current
-        if (DialogList.length === 0) { return }
-
-        const DialogIndex = DialogList.findIndex(
-          (Dialog:JCL_$Dialog) => (Dialog[$normalizedName] === normalizedName)
-        )
-        if (DialogIndex < 0) { return }
-
-        DialogListRef.current = DialogList.filter(
-          (_:any, Index:number) => (Index !== DialogIndex)
-        )
-
-        rerenderDialogBase()
-      }
-
-    /**** closeAllDialogs ****/
-
-      function closeAllDialogs ():void {
-        if (DialogListRef.current.length === 0) { return }
-
-        DialogListRef.current = []
-        rerenderDialogBase()
-      }
-
-    /**** openDialogs ****/
-
-      const openDialogs:JCL_Name[] = DialogListRef.current.map(
-        (Dialog:JCL_$Dialog) => Dialog.Name as JCL_Name
-      )
-
-    /**** DialogIsOpen ****/
-
-      function DialogIsOpen (Name:JCL_Name):boolean {
-        expectName('dialog name', Name)
-
-        const normalizedName = _normalizedName(Name)
-        return (DialogListRef.current.findIndex(
-          (Dialog:JCL_$Dialog) => (Dialog[$normalizedName] === normalizedName)
-        ) >= 0)
-      }
-
     /**** DialogIsFrontmost ****/
 
       function DialogIsFrontmost (Name:JCL_Name):boolean {
@@ -5354,15 +5284,7 @@ console.warn(ErrorToShow)
     /**** validateDialogDescriptor ****/
 
       function validateDialogDescriptor (Value:any):void {
-        if (! ValueIsPlainObject(Value)) throwError(
-          'InvalidArgument: the given dialog descriptor is no plain JavaScript object'
-        )
-
-        const Hint = (Value.Name == null)
-          ? 'dialog descriptor'
-          : 'descriptor for dialog ' + quoted(Value.Name)
-
-        try {
+        validatedDescriptor(Value,'dialog', () => {
           expectName    ('Name',          Value.Name)
           allowBoolean  ('isModal',       Value.isModal)
           allowBoolean  ('hasCloseButton',Value.hasCloseButton)
@@ -5380,12 +5302,7 @@ console.warn(ErrorToShow)
           allowDimension('minHeight',     Value.minHeight)
           allowDimension('maxWidth',      Value.maxWidth)
           allowDimension('maxHeight',     Value.maxHeight)
-        } catch (Signal:any) {
-          if ((Signal.name === 'MissingArgument') || (Signal.name === 'InvalidArgument')) {
-            Signal.message += ' in ' + Hint
-          }
-          throw Signal
-        }
+        })
       }
 
 
@@ -5569,36 +5486,9 @@ console.warn(ErrorToShow)
 
     /**** keyboard handler: ESC closes, Tab traps focus in modal ****/
 
-      const _onKeyDown = useCallback((Event:KeyboardEvent) => {
-        if (Event.key === 'Escape') {
-          Event.stopPropagation()
-          if (! Dialog.isModal) {
-            closeDialog(Dialog.Name)
-          }
-          return
-        }
-
-        if (Dialog.isModal && Event.key === 'Tab') {
-          const DialogElement = DialogRef.current as HTMLElement | null
-          if (DialogElement == null) { return }
-
-          const focusable = Array.from(
-            DialogElement.querySelectorAll<HTMLElement>(focusableSelector)
-          ).filter((n) => n.tabIndex >= 0)
-
-          if (focusable.length === 0) { Event.preventDefault(); return }
-
-          const first = focusable[0] as HTMLElement
-          const last  = focusable[focusable.length - 1] as HTMLElement
-
-          switch (true) {
-            case Event.shiftKey && ((document.activeElement === first) || (document.activeElement === DialogElement)):
-              Event.preventDefault(); last.focus(); break
-            case ! Event.shiftKey && (document.activeElement === last):
-              Event.preventDefault(); first.focus(); break
-          }
-        }
-      }, [ Dialog, closeDialog ])
+      const _onKeyDown = useModalFocusTrap(
+        DialogRef, Dialog, closeDialog, true, [ Dialog, closeDialog ]
+      )
 
     /**** measure and position the dialog before the browser paints it ****/
 
@@ -5843,9 +5733,11 @@ console.warn(ErrorToShow)
         const Placement = acceptableValue   (PropSet.Placement, (Value:any) => ValueIsOneOf(Value,[ 'top-left','top-right','bottom-left','bottom-right' ])) ?? 'bottom-right'
       const ContentList = PropSet.children
 
-      const ToastListRef = useRef<JCL_$Toast[]>([])
-
-      const rerender = useRerenderer()
+      const {                     // s. "shared Base Helpers" for these commons
+        ListRef:ToastListRef, rerender,
+        closeEntity:closeToast, closeAllEntities:closeAllToasts,
+        EntityIsOpen:ToastIsOpen, openEntities:openToasts,
+      } = useNamedEntityList('toast')
 
     /**** showToast (returns the - possibly generated - toast name) ****/
 
@@ -5874,77 +5766,16 @@ console.warn(ErrorToShow)
         return Name
       }
 
-    /**** closeToast ****/
-
-      function closeToast (Name:JCL_Name):void {
-        expectName('toast name', Name)
-        const normalizedName = _normalizedName(Name)
-
-        const ToastList = ToastListRef.current
-        if (ToastList.length === 0) { return }
-
-        const idx = ToastList.findIndex(
-          (Toast:JCL_$Toast) => (Toast[$normalizedName] === normalizedName)
-        )
-        if (idx < 0) { return }
-
-        ToastListRef.current = ToastList.filter(
-          (_:any, i:number) => (i !== idx)
-        )
-
-        rerender()
-      }
-
-    /**** closeAllToasts ****/
-
-      function closeAllToasts ():void {
-        if (ToastListRef.current.length === 0) { return }
-        ToastListRef.current = []
-        rerender()
-      }
-
-    /**** openToasts (snapshot) ****/
-
-      const openToasts:JCL_Name[] = ToastListRef.current.map(
-        (Toast:JCL_$Toast) => Toast.Name as JCL_Name
-      )
-
-    /**** ToastIsOpen ****/
-
-      function ToastIsOpen (Name:JCL_Name):boolean {
-        expectName('toast name', Name)
-        const normalizedName = _normalizedName(Name)
-
-        return (ToastListRef.current.findIndex(
-          (Toast:JCL_$Toast) => (Toast[$normalizedName] === normalizedName)
-        ) >= 0)
-      }
-
     /**** validateToastDescriptor ****/
 
       function validateToastDescriptor (Value:any):void {
-        if (! ValueIsPlainObject(Value)) throwError(
-          'InvalidArgument: the given toast descriptor is no plain JavaScript object'
-        )
-
-        let Id = 'toast descriptor'
-        try {
+        validatedDescriptor(Value,'toast', () => {
           allowName          ('Name',Value.Name)
           expectFunction ('Renderer',Value.Renderer)
           allowOrdinal   ('Duration',Value.Duration)      // "0" keeps the toast
           allowFunction    ('onOpen',Value.onOpen)
           allowFunction   ('onClose',Value.onClose)
-
-          if (Value.Name != null) { Id = `descriptor for toast "${Value.Name}"` }
-        } catch (Signal:any) {
-          if (
-            (Signal.name === 'MissingArgument') ||
-            (Signal.name === 'InvalidArgument')
-          ) {
-            Signal.message += ' in ' + Id
-          }
-          throw Signal
-        }
+        })
       }
 
     /**** publish API ****/
@@ -7038,6 +6869,36 @@ console.warn(ErrorToShow)
 //                                    Icon                                    //
 //----------------------------------------------------------------------------//
 
+/**** useClickableIcon - the shared interaction logic of Icon and FAIcon ****/
+
+  function useClickableIcon (
+    Name:string, disabled:boolean, onClick:Function|undefined
+  ):Indexable {
+    const isInteractive = (onClick != null)
+
+    const _onClick = useCallback((Event:Event):void => {
+      if (disabled) { return consumingEvent(Event) }
+      executeCallback(Name + ' callback "onClick"', onClick, Event)
+    }, [ disabled, onClick ])
+
+    const _onKeyDown = useCallback((Event:KeyboardEvent):void => {
+      if ((Event.key === 'Enter') || (Event.key === ' ')) {
+        Event.preventDefault()
+        if (! disabled) {
+          executeCallback(Name + ' callback "onClick"', onClick, Event as any)
+        }
+      }
+    }, [ disabled, onClick ])
+
+    const Cursor = (
+      disabled ? 'not-allowed' : isInteractive ? 'pointer' : 'auto'
+    )
+
+    return { isInteractive, _onClick, _onKeyDown, Cursor }
+  }
+
+/**** Icon ****/
+
   export function Icon (PropSet:Indexable):any {
     return safelyRendered(() => {
       PropSet = parseablePropSet(PropSet)
@@ -7050,25 +6911,8 @@ console.warn(ErrorToShow)
         const disabled = acceptableBoolean (PropSet.disabled) ?? false
         const onClick  = acceptableFunction(PropSet.onClick)
 
-      const isInteractive = (onClick != null)
-
-      const _onClick = useCallback((Event:Event):void => {
-        if (disabled) { return consumingEvent(Event) }
-        executeCallback('Icon callback "onClick"', onClick, Event)
-      }, [ disabled, onClick ])
-
-      const _onKeyDown = useCallback((Event:KeyboardEvent):void => {
-        if ((Event.key === 'Enter') || (Event.key === ' ')) {
-          Event.preventDefault()
-          if (! disabled) {
-            executeCallback('Icon callback "onClick"', onClick, Event as any)
-          }
-        }
-      }, [ disabled, onClick ])
-
-      const Cursor = (
-        disabled ? 'not-allowed' : isInteractive ? 'pointer' : 'auto'
-      )
+      const { isInteractive,_onClick,_onKeyDown,Cursor } =
+        useClickableIcon('Icon',disabled,onClick)
 
       return html`<div
         class="jcl-component icon ${disabled ? 'disabled' : ''} ${active ? 'active' : ''} ${Classes}"
@@ -7089,6 +6933,8 @@ console.warn(ErrorToShow)
     })
   }
 
+// the "active" and focus styles are shared with "FAIcon"
+
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.icon',`
     .jcl-component.icon {
       width:24px !important; height:24px !important;
@@ -7101,16 +6947,20 @@ console.warn(ErrorToShow)
       -webkit-mask-position:center center; mask-position:center center;
     }
 
-    .jcl-component.icon.active {
+    .jcl-component.icon.active,
+    .jcl-component.fa-icon.active {
       background:#e8f0ff;
       outline:solid 2px lightgray; border-radius:4px;
     }
-    .jcl-component.icon[role="button"]:focus-visible {
+    .jcl-component.icon[role="button"]:focus-visible,
+    .jcl-component.fa-icon[role="button"]:focus-visible {
       outline:solid 2px #6366f1; border-radius:4px;
     }
     @media (prefers-contrast: more) {
-      .jcl-component.icon.active { outline:solid 3px currentColor }
-      .jcl-component.icon[role="button"]:focus-visible { outline:solid 3px currentColor }
+      .jcl-component.icon.active,
+      .jcl-component.fa-icon.active { outline:solid 3px currentColor }
+      .jcl-component.icon[role="button"]:focus-visible,
+      .jcl-component.fa-icon[role="button"]:focus-visible { outline:solid 3px currentColor }
     }
   `)
 //----------------------------------------------------------------------------//
@@ -7318,25 +7168,8 @@ console.warn(ErrorToShow)
         const disabled = acceptableBoolean (PropSet.disabled) ?? false
         const onClick  = acceptableFunction(PropSet.onClick)
 
-      const isInteractive = (onClick != null)
-
-      const _onClick = useCallback((Event:Event):void => {
-        if (disabled) { return consumingEvent(Event) }
-        executeCallback('FAIcon callback "onClick"', onClick, Event)
-      }, [ disabled, onClick ])
-
-      const _onKeyDown = useCallback((Event:KeyboardEvent):void => {
-        if ((Event.key === 'Enter') || (Event.key === ' ')) {
-          Event.preventDefault()
-          if (! disabled) {
-            executeCallback('FAIcon callback "onClick"', onClick, Event as any)
-          }
-        }
-      }, [ disabled, onClick ])
-
-      const Cursor = (
-        disabled ? 'not-allowed' : isInteractive ? 'pointer' : 'auto'
-      )
+      const { isInteractive,_onClick,_onKeyDown,Cursor } =
+        useClickableIcon('FAIcon',disabled,onClick)
 
       return html`<div
         class="jcl-component fa-icon fa ${Value} ${disabled ? 'disabled' : ''} ${active ? 'active' : ''} ${Classes}"
@@ -7352,23 +7185,13 @@ console.warn(ErrorToShow)
     })
   }
 
+// the "active" and focus styles are shared with "Icon" (s. there)
+
   if (typeof document !== 'undefined') installStylesheetFor('jcl-component.fa-icon',`
     .jcl-component.fa-icon {
       width:24px !important; height:24px !important;
       font-size:18px; line-height:24px; text-align:center;
       pointer-events:auto;
-    }
-
-    .jcl-component.fa-icon.active {
-      background:#e8f0ff;
-      outline:solid 2px lightgray; border-radius:4px;
-    }
-    .jcl-component.fa-icon[role="button"]:focus-visible {
-      outline:solid 2px #6366f1; border-radius:4px;
-    }
-    @media (prefers-contrast: more) {
-      .jcl-component.fa-icon.active { outline:solid 3px currentColor }
-      .jcl-component.fa-icon[role="button"]:focus-visible { outline:solid 3px currentColor }
     }
   `)
 /**** nativeButton ****/
@@ -7658,54 +7481,160 @@ console.warn(ErrorToShow)
     }
   `)
 
-/**** nativeTextlineInput ****/
+/**** shared factories for single-line input components ****/
 
-  export function nativeTextlineInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes       = acceptableTextline(PropSet.Class) ?? ''
-        const Value         = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const invalid       = acceptableBoolean (PropSet.invalid)
-        const Placeholder   = acceptableTextline(PropSet.Placeholder)
-        const readonly      = acceptableBoolean (PropSet.readonly)
-        const minLength     = acceptableOrdinal (PropSet.minLength)
-        const maxLength     = acceptableOrdinal (PropSet.maxLength)
-        const Pattern       = acceptableTextline(PropSet.Pattern)
-        const SpellChecking = acceptableBoolean (PropSet.SpellCheck)
-        const Suggestions   = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsTextline))
-        const disabled      = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput  = acceptableFunction(PropSet.onValueInput)
-        const onInput       = acceptableFunction(PropSet.onInput)
-        const onBlur        = acceptableFunction(PropSet.onBlur)
+// the following factories generate all those single-line "native" and
+// "styled" input components which only differ in their input type, CSS
+// classes, value validation and a few optional attributes
 
-    /**** ignore external changes while this control is in use ****/
+/**** textualInputComponentFor - for text-like single-line inputs ****/
 
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeTextlineInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="text" class="jcl-component native-textline-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} spellcheck=${SpellChecking}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
+  type JCL_TextualInputOptions = {
+    Name:string,                              // e.g. 'nativeTextlineInput'
+    InputType:string,                         // e.g. 'text'
+    ClassName:string,                         // e.g. 'native-textline-input'
+    ValueIsValid:(Value:any) => boolean,      // e.g. ValueIsTextline
+    withSpellChecking?:boolean, withMultiple?:boolean, withSuggestions?:boolean,
+    Styled?:boolean            // "styled" components support "Size" and ARIA
   }
 
-  installStylesheetFor('jcl-component.native-textline-input',`
-    .jcl-component.native-textline-input {
+  function textualInputComponentFor (
+    Options:JCL_TextualInputOptions
+  ):(PropSet:Indexable) => any {
+    const {
+      Name, InputType, ClassName, ValueIsValid,
+      withSpellChecking = false, withMultiple = false, withSuggestions = true,
+      Styled = false
+    } = Options
+
+    return function InputComponent (PropSet:Indexable):any {
+      return safelyRendered(() => {
+        PropSet = parseablePropSet(PropSet)
+          const Classes       = acceptableTextline(PropSet.Class) ?? ''
+          const Value         = acceptableValue   (PropSet.Value, (Value:any) => ValueIsValid(Value) || ValueIsSpecial(Value))
+          const multiple      = (withMultiple ? acceptableBoolean(PropSet.multiple) : undefined)
+          const invalid       = acceptableBoolean (PropSet.invalid)
+          const Placeholder   = acceptableTextline(PropSet.Placeholder)
+          const readonly      = acceptableBoolean (PropSet.readonly)
+          const minLength     = acceptableOrdinal (PropSet.minLength)
+          const maxLength     = acceptableOrdinal (PropSet.maxLength)
+          const Pattern       = acceptableTextline(PropSet.Pattern)
+          const SpellChecking = (withSpellChecking ? acceptableBoolean(PropSet.SpellCheck) : undefined)
+          const Suggestions   = (withSuggestions   ? acceptableValue  (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsValid)) : undefined)
+          const Size          = (Styled ? acceptableValue(PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal' : undefined)
+          const disabled      = acceptableBoolean (PropSet.disabled) ?? false
+          const onValueInput  = acceptableFunction(PropSet.onValueInput)
+          const onInput       = acceptableFunction(PropSet.onInput)
+          const onBlur        = acceptableFunction(PropSet.onBlur)
+
+      /**** ignore external changes while this control is in use ****/
+
+        const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
+
+        const { actualValue,actualPlaceholder,actualDisabling } =
+          resolvedSpecialValue(ValueToShow,disabled,Placeholder)
+
+        const { _onInput,_onBlur } = useInputCallbacks({
+          Name, actualDisabling, shownValue,
+          onInput,onValueInput,onBlur
+        })
+
+      /**** actual rendering ****/
+
+        const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
+
+        const BaseClasses = (
+          Styled
+          ? `jcl-component styled-input ${ClassName} ${SizeClassFor(Size as string)}`
+          : `jcl-component native-textual-input ${ClassName}`
+        )
+
+        return html`<input type=${InputType} class="${BaseClasses} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
+          value=${actualValue} minlength=${minLength} maxlength=${maxLength}
+          multiple=${multiple} readOnly=${readonly} placeholder=${actualPlaceholder}
+          pattern=${Pattern} spellcheck=${SpellChecking}
+          disabled=${actualDisabling} list=${SuggestionId}
+          aria-invalid=${(Styled && (invalid == true)) ? 'true' : undefined}
+          onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
+        />${SuggestionList}`
+      })
+    }
+  }
+
+/**** temporalInputComponentFor - for date- and time-like inputs ****/
+
+// components built from an option set with a "Pattern" are date-like (and
+// render that pattern), all others are time-like (and support "withSeconds")
+
+  type JCL_TemporalInputOptions = {
+    Name:string,                              // e.g. 'nativeTimeInput'
+    InputType:string,                         // e.g. 'time'
+    ClassName:string,                         // e.g. 'native-time-input'
+    ValueIsValid:(Value:any) => boolean,      // e.g. ValueIsTime
+    Pattern?:string,                          // e.g. JCL_DatePattern
+    Styled?:boolean            // "styled" components support "Size" as well
+  }
+
+  function temporalInputComponentFor (
+    Options:JCL_TemporalInputOptions
+  ):(PropSet:Indexable) => any {
+    const { Name, InputType, ClassName, ValueIsValid, Pattern, Styled = false } = Options
+    const TimeLike = (Pattern == null)
+
+    return function InputComponent (PropSet:Indexable):any {
+      return safelyRendered(() => {
+        PropSet = parseablePropSet(PropSet)
+          const Classes      = acceptableTextline(PropSet.Class) ?? ''
+          const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsValid(Value) || ValueIsSpecial(Value))
+          const readonly     = acceptableBoolean (PropSet.readonly)
+          const withSeconds  = (TimeLike ? acceptableBoolean(PropSet.withSeconds) : undefined)
+          const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsValid)
+          const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsValid)
+          const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsValid))
+          const Size         = (Styled ? acceptableValue(PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal' : undefined)
+          const disabled     = acceptableBoolean (PropSet.disabled) ?? false
+          const onValueInput = acceptableFunction(PropSet.onValueInput)
+          const onInput      = acceptableFunction(PropSet.onInput)
+          const onBlur       = acceptableFunction(PropSet.onBlur)
+
+      /**** ignore external changes while this control is in use ****/
+
+        const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
+
+        const { actualValue,actualDisabling } =
+          resolvedSpecialValue(ValueToShow,disabled)
+
+        const { _onInput,_onBlur } = useInputCallbacks({
+          Name, actualDisabling, shownValue,
+          onInput,onValueInput,onBlur
+        })
+
+      /**** actual rendering ****/
+
+        const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
+
+        const BaseClasses = (
+          Styled
+          ? `jcl-component styled-input ${ClassName} ${SizeClassFor(Size as string)}`
+          : `jcl-component native-temporal-input ${ClassName}`
+        )
+
+        return html`<input type=${InputType} class="${BaseClasses} ${Classes}" ref=${ViewRef}
+          value=${actualValue} min=${Minimum} max=${Maximum}
+          step=${TimeLike ? (withSeconds ? 1 : 60) : undefined} pattern=${Pattern}
+          readOnly=${readonly}
+          disabled=${actualDisabling} list=${SuggestionId}
+          onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
+        />${SuggestionList}`
+      })
+    }
+  }
+
+/**** common styling for all "native" input components ****/
+
+  installStylesheetFor('jcl-component.native-textual-input',`
+    .jcl-component.native-textual-input,
+    .jcl-component.native-temporal-input {
       height:30px;
       border:solid 1px #888888; border-radius:2px;
       background:#e8f0ff;
@@ -7713,85 +7642,43 @@ console.warn(ErrorToShow)
       line-height:28px;
     }
 
-    .jcl-component.native-textline-input:invalid, .jcl-component.native-textline-input.invalid {
+    .jcl-component.native-textual-input:invalid,
+    .jcl-component.native-textual-input.invalid {
       text-decoration:underline wavy red 1px;
     }
 
-    .jcl-component.native-textline-input:read-only {
+    .jcl-component.native-textual-input:read-only,
+    .jcl-component.native-temporal-input:read-only {
       border:solid 1px #DDDDDD; border-radius:2px;
       background:#F0F0F0;
     }
 
-    .jcl-component.native-textline-input:disabled {
+    .jcl-component.native-textual-input:disabled,
+    .jcl-component.native-temporal-input:disabled {
       cursor:not-allowed;
     }
   `)
+
+/**** nativeTextlineInput ****/
+
+  export const nativeTextlineInput = textualInputComponentFor({
+    Name:'nativeTextlineInput', InputType:'text',
+    ClassName:'native-textline-input', ValueIsValid:ValueIsTextline,
+    withSpellChecking:true
+  })
 
 /**** nativePasswordInput ****/
 
-  export function nativePasswordInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativePasswordInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      return html`<input type="password" class="jcl-component native-password-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} disabled=${actualDisabling}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-password-input',`
-    .jcl-component.native-password-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-password-input:invalid, .jcl-component.native-password-input.invalid {
-      text-decoration:underline wavy red 1px;
-    }
-
-    .jcl-component.native-password-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-password-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativePasswordInput = textualInputComponentFor({
+    Name:'nativePasswordInput', InputType:'password',
+    ClassName:'native-password-input', ValueIsValid:ValueIsTextline,
+    withSuggestions:false
+  })
 
 /**** nativeNumberInput ****/
+
+// not built with "textualInputComponentFor" because of its "Digits" handling,
+// but shares the common "native-textual-input" styling
 
   export function nativeNumberInput (PropSet:Indexable):any {
     return safelyRendered(() => {
@@ -7851,7 +7738,7 @@ console.warn(ErrorToShow)
       const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
 
       return html`<input type="number" ref=${ViewRef}
-        class="jcl-component native-number-input ${Classes} ${invalid ? 'invalid' : ''}"
+        class="jcl-component native-textual-input native-number-input ${Classes} ${invalid ? 'invalid' : ''}"
         value=${actualValue} min=${Minimum} max=${Maximum} step=${actualStepping}
         readOnly=${readonly} placeholder=${actualPlaceholder}
         disabled=${actualDisabling} list=${SuggestionId}
@@ -7860,230 +7747,27 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-number-input',`
-    .jcl-component.native-number-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-number-input:invalid, .jcl-component.native-number-input.invalid {
-      text-decoration:underline wavy red 1px;
-    }
-
-    .jcl-component.native-number-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-number-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
-
 /**** nativeEMailAddressInput ****/
 
-  export function nativeEMailAddressInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsEMailAddress(Value) || ValueIsSpecial(Value))
-        const multiple     = acceptableBoolean (PropSet.multiple)
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsEMailAddress))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeEMailAddressInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="email" class="jcl-component native-emailaddress-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        multiple=${multiple} readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-emailaddress-input',`
-    .jcl-component.native-emailaddress-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-emailaddress-input:invalid, .jcl-component.native-emailaddress-input.invalid {
-      text-decoration:underline wavy red 1px;
-    }
-
-    .jcl-component.native-emailaddress-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-emailaddress-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeEMailAddressInput = textualInputComponentFor({
+    Name:'nativeEMailAddressInput', InputType:'email',
+    ClassName:'native-emailaddress-input', ValueIsValid:ValueIsEMailAddress,
+    withMultiple:true
+  })
 
 /**** nativePhoneNumberInput ****/
 
-  export function nativePhoneNumberInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsPhoneNumber(Value) || ValueIsSpecial(Value))
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsPhoneNumber))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativePhoneNumberInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="tel" class="jcl-component native-phonenumber-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder} pattern=${Pattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-phonenumber-input',`
-    .jcl-component.native-phonenumber-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-phonenumber-input:invalid, .jcl-component.native-phonenumber-input.invalid {
-      text-decoration:underline wavy red 1px;
-    }
-
-    .jcl-component.native-phonenumber-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-phonenumber-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativePhoneNumberInput = textualInputComponentFor({
+    Name:'nativePhoneNumberInput', InputType:'tel',
+    ClassName:'native-phonenumber-input', ValueIsValid:ValueIsPhoneNumber
+  })
 
 /**** nativeURLInput ****/
 
-  export function nativeURLInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsURL(Value) || ValueIsSpecial(Value))
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsURL))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeURLInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="url" class="jcl-component native-url-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder} pattern=${Pattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-url-input',`
-    .jcl-component.native-url-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-url-input:invalid, .jcl-component.native-url-input.invalid {
-      text-decoration:underline wavy red 1px;
-    }
-
-    .jcl-component.native-url-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-url-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeURLInput = textualInputComponentFor({
+    Name:'nativeURLInput', InputType:'url',
+    ClassName:'native-url-input', ValueIsValid:ValueIsURL
+  })
 
 /**** nativeTimeInput ****/
 
@@ -8094,64 +7778,10 @@ console.warn(ErrorToShow)
     return ValueIsStringMatching(Value,JCL_TimeRegExp)
   }
 
-  export function nativeTimeInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTime(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const withSeconds  = acceptableBoolean (PropSet.withSeconds)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsTime)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsTime)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsTime))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeTimeInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="time" class="jcl-component native-time-input ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
-        readOnly=${readonly}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-time-input',`
-    .jcl-component.native-time-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-time-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-time-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeTimeInput = temporalInputComponentFor({
+    Name:'nativeTimeInput', InputType:'time',
+    ClassName:'native-time-input', ValueIsValid:ValueIsTime
+  })
 
 /**** nativeDateTimeInput ****/
 
@@ -8162,64 +7792,10 @@ console.warn(ErrorToShow)
     return ValueIsStringMatching(Value,JCL_DateTimeRegExp)
   }
 
-  export function nativeDateTimeInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsDateTime(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const withSeconds  = acceptableBoolean (PropSet.withSeconds)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDateTime)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDateTime)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsDateTime))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeDateTimeInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="datetime-local" class="jcl-component native-datetime-input ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
-        readOnly=${readonly}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-datetime-input',`
-    .jcl-component.native-datetime-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-datetime-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-datetime-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeDateTimeInput = temporalInputComponentFor({
+    Name:'nativeDateTimeInput', InputType:'datetime-local',
+    ClassName:'native-datetime-input', ValueIsValid:ValueIsDateTime
+  })
 
 /**** nativeDateInput ****/
 
@@ -8230,63 +7806,11 @@ console.warn(ErrorToShow)
     return ValueIsStringMatching(Value,JCL_DateRegExp)
   }
 
-  export function nativeDateInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsDate(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDate)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDate)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsDate))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeDateInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="date" class="jcl-component native-date-input ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum}
-        readOnly=${readonly} pattern=${JCL_DatePattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-date-input',`
-    .jcl-component.native-date-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-date-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-date-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeDateInput = temporalInputComponentFor({
+    Name:'nativeDateInput', InputType:'date',
+    ClassName:'native-date-input', ValueIsValid:ValueIsDate,
+    Pattern:JCL_DatePattern
+  })
 
 /**** nativeWeekInput ****/
 
@@ -8297,63 +7821,11 @@ console.warn(ErrorToShow)
     return ValueIsStringMatching(Value,JCL_WeekRegExp)
   }
 
-  export function nativeWeekInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsWeek(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsWeek)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsWeek)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsWeek))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeWeekInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="week" class="jcl-component native-week-input ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum}
-        readOnly=${readonly} pattern=${JCL_WeekPattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-week-input',`
-    .jcl-component.native-week-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-week-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-week-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeWeekInput = temporalInputComponentFor({
+    Name:'nativeWeekInput', InputType:'week',
+    ClassName:'native-week-input', ValueIsValid:ValueIsWeek,
+    Pattern:JCL_WeekPattern
+  })
 
 /**** nativeMonthInput ****/
 
@@ -8364,132 +7836,19 @@ console.warn(ErrorToShow)
     return ValueIsStringMatching(Value,JCL_MonthRegExp)
   }
 
-  export function nativeMonthInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsMonth(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsMonth)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsMonth)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsMonth))
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeMonthInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="month" class="jcl-component native-month-input ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum}
-        readOnly=${readonly} pattern=${JCL_MonthPattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-month-input',`
-    .jcl-component.native-month-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-month-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-month-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeMonthInput = temporalInputComponentFor({
+    Name:'nativeMonthInput', InputType:'month',
+    ClassName:'native-month-input', ValueIsValid:ValueIsMonth,
+    Pattern:JCL_MonthPattern
+  })
 
 /**** nativeSearchInput ****/
 
-  export function nativeSearchInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes       = acceptableTextline(PropSet.Class) ?? ''
-        const Value         = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const invalid       = acceptableBoolean (PropSet.invalid)
-        const Placeholder   = acceptableTextline(PropSet.Placeholder)
-        const readonly      = acceptableBoolean (PropSet.readonly)
-        const minLength     = acceptableOrdinal (PropSet.minLength)
-        const maxLength     = acceptableOrdinal (PropSet.maxLength)
-        const Pattern       = acceptableTextline(PropSet.Pattern)
-        const SpellChecking = acceptableBoolean (PropSet.SpellCheck)
-        const Suggestions   = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsTextline))
-        const disabled      = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput  = acceptableFunction(PropSet.onValueInput)
-        const onInput       = acceptableFunction(PropSet.onInput)
-        const onBlur        = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'nativeSearchInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      return html`<input type="search" class="jcl-component native-search-input ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} spellcheck=${SpellChecking}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
-
-  installStylesheetFor('jcl-component.native-search-input',`
-    .jcl-component.native-search-input {
-      height:30px;
-      border:solid 1px #888888; border-radius:2px;
-      background:#e8f0ff;
-      padding:0px 2px 0px 2px;
-      line-height:28px;
-    }
-
-    .jcl-component.native-search-input:invalid, .jcl-component.native-search-input.invalid {
-      text-decoration:underline wavy red 1px;
-    }
-
-    .jcl-component.native-search-input:read-only {
-      border:solid 1px #DDDDDD; border-radius:2px;
-      background:#F0F0F0;
-    }
-
-    .jcl-component.native-search-input:disabled {
-      cursor:not-allowed;
-    }
-  `)
+  export const nativeSearchInput = textualInputComponentFor({
+    Name:'nativeSearchInput', InputType:'search',
+    ClassName:'native-search-input', ValueIsValid:ValueIsTextline,
+    withSpellChecking:true
+  })
 
 /**** nativeFileInput ****/
 
@@ -8641,7 +8000,7 @@ console.warn(ErrorToShow)
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const Placeholder  = acceptableTextline(PropSet.Placeholder) ?? '(please select)'
+        const Placeholder  = acceptableTextline(PropSet.Placeholder)
         const Options      = acceptableValue   (PropSet.Options, (Value:any) => ValueIsListSatisfying(Value,ValueIsTextline)) ?? missingProperty('Options')
         const disabled     = acceptableBoolean (PropSet.disabled) ?? false
         const onValueInput = acceptableFunction(PropSet.onValueInput)
@@ -8665,18 +8024,21 @@ console.warn(ErrorToShow)
       }, [ actualDisabling, onInput,onValueInput ])
 
     /**** show the placeholder for a missing or unmatched "Value" setting ****/
-    // (a disabled, initially selected entry without any value of its own)
+    // (a disabled, initially selected entry without any value of its own) -
+    // without any "Placeholder" (and outside special values) no such entry
+    // is shown at all
 
       const hasMatch = Options.some((Option:string) => {
         const { Value:OptionValue, isRuler } = parsedOption(Option)
         return (! isRuler && (OptionValue === actualValue))
       })
+      const showsPlaceholder = (! hasMatch && (actualPlaceholder != null))
 
     /**** actual rendering ****/
 
       return html`<select class="jcl-component native-dropdown ${Classes}"
         disabled=${actualDisabling} onInput=${_onInput} ...${PropSet.RestProps}
-      >${hasMatch ? '' : html`<option value="" selected disabled>${actualPlaceholder}</option>`}${Options.map((Option:string) => {
+      >${showsPlaceholder ? html`<option value="" selected disabled>${actualPlaceholder}</option>` : ''}${Options.map((Option:string) => {
           const {
             Value:OptionValue, Label:OptionLabel, disabled,isRuler
           } = parsedOption(Option)                 // allows for empty values
@@ -9276,6 +8638,29 @@ console.warn(ErrorToShow)
   `)
 
 //------------------------------------------------------------------------------
+//--                           shared ListView Helpers                         --
+//------------------------------------------------------------------------------
+
+/**** dedupedItems - keeps first occurrences only, tracked in "ItemSet" ****/
+
+// used by Flat- and NestedListView to sanitise their "selectedItems"
+
+  function dedupedItems (
+    ItemList:Indexable[]|undefined, ItemSet:Set<Indexable>
+  ):Indexable[] {
+    if (ItemList == null) { return [] }
+
+    return ItemList.filter((Item:Indexable) => {
+      if (ItemSet.has(Item)) {
+        return false
+      } else {
+        ItemSet.add(Item)
+        return true
+      }
+    })
+  }
+
+//------------------------------------------------------------------------------
 //--                               FlatListView                               --
 //------------------------------------------------------------------------------
 
@@ -9354,18 +8739,7 @@ console.warn(ErrorToShow)
 
       const SelectionSet:Set<Indexable> = new Set()
       if (ListIsSelectable) {
-        if (selectedItems == null) {
-          selectedItems = []
-        } else {
-          selectedItems = selectedItems.filter((Item:Indexable) => {
-            if (SelectionSet.has(Item)) {
-              return false
-            } else {
-              SelectionSet.add(Item)
-              return true
-            }
-          })
-        }
+        selectedItems = dedupedItems(selectedItems,SelectionSet)
 
         if (selectedItems.length > SelectionLimit) {
           selectedItems.slice(SelectionLimit).forEach(
@@ -9783,30 +9157,20 @@ console.warn(ErrorToShow)
         }
       }
 
-    /**** sanitize "selectedItems" (ignore double entries) ****/
+    /**** sanitize "selectedItems" (ignore double entries, then remove ****/
+    /**** items which are already contained in other selected ones)    ****/
 
       const SelectionSet:Set<Indexable> = new Set()
       if (ListIsSelectable) {
-        if (selectedItems == null) {
-          selectedItems = []
-        } else {
-          selectedItems = selectedItems.filter((Item:Indexable) => {
-            if (SelectionSet.has(Item)) {
-              return false
-            } else {
-              SelectionSet.add(Item)
-              return true
-            }
-          })
+        selectedItems = dedupedItems(selectedItems,SelectionSet)
 
-          for (let i = selectedItems.length-1; i >= 0; i--) {
-            const thisItem = selectedItems[i]
-            if (selectedItems.some((otherItem:Indexable, j:number) => {
-              return (j !== i) && ItemContainsItem(otherItem,thisItem)
-            })) {
-              selectedItems.splice(i,1)
-              SelectionSet.delete(thisItem)
-            }
+        for (let i = selectedItems.length-1; i >= 0; i--) {
+          const thisItem = selectedItems[i]
+          if (selectedItems.some((otherItem:Indexable, j:number) => {
+            return (j !== i) && ItemContainsItem(otherItem,thisItem)
+          })) {
+            selectedItems.splice(i,1)
+            SelectionSet.delete(thisItem)
           }
         }
 
@@ -12138,6 +11502,66 @@ console.warn(ErrorToShow)
     )
   }
 
+/**** alignment guide collection (also used by the DataFlow editor) ****/
+
+// coinciding edges are marked with a dashed line, edges coinciding with
+// centres (or vice versa) with a dotted one - the returned maps associate
+// (tolerance-rounded) coordinates with their line style
+
+  function AlignmentMetricsOfBox (Box:Indexable):Indexable {
+    return {
+      xEdges:[ Box.x, Box.x+Box.Width ],  xCenter:Box.x+Box.Width/2,
+      yEdges:[ Box.y, Box.y+Box.Height ], yCenter:Box.y+Box.Height/2
+    }
+  }
+
+  function collectAlignmentGuides (
+    movedMetrics:Indexable[], unmovedMetrics:Indexable[], Tolerance:number
+  ):{ vertical:Map<number,string>, horizontal:Map<number,string> } {
+    const VerticalGuides:Map<number,string>   = new Map()
+    const HorizontalGuides:Map<number,string> = new Map()
+
+    const coincide = (a:number, b:number):boolean => (
+      Math.abs(a-b) <= Tolerance
+    )
+    const addGuide = (
+      GuideMap:Map<number,string>, Coordinate:number, LineStyle:string
+    ):void => {
+      const Key = Math.round(Coordinate/Tolerance)*Tolerance
+      if ((LineStyle === 'dashed') || (GuideMap.get(Key) == null)) {
+        GuideMap.set(Key,LineStyle)
+      }
+    }
+
+    const collectGuides = (
+      GuideMap:Map<number,string>, EdgeKey:string, CenterKey:string
+    ):void => {
+      movedMetrics.forEach((moved:any) => {
+        unmovedMetrics.forEach((unmoved:any) => {
+          moved[EdgeKey].forEach((movedEdge:number) => {
+            unmoved[EdgeKey].forEach((unmovedEdge:number) => {
+              if (coincide(movedEdge,unmovedEdge)) {
+                addGuide(GuideMap,unmovedEdge,'dashed')
+              }
+            })
+            if (coincide(movedEdge,unmoved[CenterKey])) {
+              addGuide(GuideMap,unmoved[CenterKey],'dotted')
+            }
+          })
+          unmoved[EdgeKey].forEach((unmovedEdge:number) => {
+            if (coincide(moved[CenterKey],unmovedEdge)) {
+              addGuide(GuideMap,unmovedEdge,'dotted')
+            }
+          })
+        })
+      })
+    }
+    collectGuides(VerticalGuides,  'xEdges','xCenter')
+    collectGuides(HorizontalGuides,'yEdges','yCenter')
+
+    return { vertical:VerticalGuides, horizontal:HorizontalGuides }
+  }
+
 /**** grid pattern instance counter ****/
 
   let nextGridPatternIndex = 1
@@ -12732,70 +12156,25 @@ console.warn(ErrorToShow)
     }
 
   /**** drawMoveGuides - alignment guides for moved (vs. unmoved) elements ****/
-  /**** - coinciding edges are marked with a dashed line, edges coinciding ****/
-  /**** with centres (or vice versa) with a dotted one                     ****/
+  /**** - the actual collection logic is shared (s. "Geometry Utilities")  ****/
 
     drawMoveGuides ():void {
       const Tolerance = this.UnitsPerPixel()
 
       const MetricsOf = (Element:any):Indexable|undefined => {
         const Box = BoundingBoxOf([ Element ])
-        if (Box == null) { return undefined }
-        return {
-          xEdges:[ Box.x, Box.x+Box.Width ],  xCenter:Box.x+Box.Width/2,
-          yEdges:[ Box.y, Box.y+Box.Height ], yCenter:Box.y+Box.Height/2
-        }
+        return (Box == null ? undefined : AlignmentMetricsOfBox(Box))
       }
 
       const movedMetrics = this.Selection
-        .map(MetricsOf).filter((Metrics:any) => Metrics != null)
+        .map(MetricsOf).filter((Metrics:any) => Metrics != null) as Indexable[]
       const unmovedMetrics = Array.from(this.ContentLayer.children)
         .filter((Element:any) => ! this.Selection.includes(Element))
-        .map(MetricsOf).filter((Metrics:any) => Metrics != null)
+        .map(MetricsOf).filter((Metrics:any) => Metrics != null) as Indexable[]
       if ((movedMetrics.length === 0) || (unmovedMetrics.length === 0)) { return }
 
-    /**** collect coinciding coordinates - "dashed" beats "dotted" ****/
-
-      const VerticalGuides:Map<number,string>   = new Map()
-      const HorizontalGuides:Map<number,string> = new Map()
-
-      const coincide = (a:number, b:number):boolean => (
-        Math.abs(a-b) <= Tolerance
-      )
-      const addGuide = (
-        GuideMap:Map<number,string>, Coordinate:number, LineStyle:string
-      ):void => {
-        const Key = Math.round(Coordinate/Tolerance)*Tolerance
-        if ((LineStyle === 'dashed') || (GuideMap.get(Key) == null)) {
-          GuideMap.set(Key,LineStyle)
-        }
-      }
-
-      const collectGuides = (
-        GuideMap:Map<number,string>, EdgeKey:string, CenterKey:string
-      ):void => {
-        movedMetrics.forEach((moved:any) => {
-          unmovedMetrics.forEach((unmoved:any) => {
-            moved[EdgeKey].forEach((movedEdge:number) => {
-              unmoved[EdgeKey].forEach((unmovedEdge:number) => {
-                if (coincide(movedEdge,unmovedEdge)) {
-                  addGuide(GuideMap,unmovedEdge,'dashed')
-                }
-              })
-              if (coincide(movedEdge,unmoved[CenterKey])) {
-                addGuide(GuideMap,unmoved[CenterKey],'dotted')
-              }
-            })
-            unmoved[EdgeKey].forEach((unmovedEdge:number) => {
-              if (coincide(moved[CenterKey],unmovedEdge)) {
-                addGuide(GuideMap,unmovedEdge,'dotted')
-              }
-            })
-          })
-        })
-      }
-      collectGuides(VerticalGuides,  'xEdges','xCenter')
-      collectGuides(HorizontalGuides,'yEdges','yCenter')
+      const { vertical:VerticalGuides, horizontal:HorizontalGuides } =
+        collectAlignmentGuides(movedMetrics,unmovedMetrics,Tolerance)
 
     /**** actually draw the collected guides ****/
 
@@ -18922,73 +18301,25 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** DataFlowGuidesFor - alignment guides for moved (vs. unmoved) boxes ****/
 
-// adapted from DrawingEditor's "drawMoveGuides": coinciding edges are marked
-// with a dashed line, edges coinciding with centres (or vice versa) with a
-// dotted one - the only adaptation: the metrics are computed directly from
-// "Position"/"Size" (of nodes AND sticky notes, both treated as equivalent
-// "boxes") instead of via "getBBox()", since no SVG elements need to be
-// measured here. The returned maps associate (rounded) pane coordinates with
-// their line style ('dashed' or 'dotted')
+// delegates to the DrawingEditor's shared "collectAlignmentGuides": the
+// metrics are computed directly from "Position"/"Size" (of nodes AND sticky
+// notes, both treated as equivalent "boxes") instead of via "getBBox()",
+// since no SVG elements need to be measured here. The returned maps
+// associate (rounded) pane coordinates with their line style ('dashed' or
+// 'dotted')
 
   function DataFlowGuidesFor (
     movedBoxes:Indexable[], unmovedBoxes:Indexable[]
   ):{ vertical:Map<number,string>, horizontal:Map<number,string> } {
-    const Tolerance = 1                              // [px] - no zooming here
-
-    const VerticalGuides:Map<number,string>   = new Map()
-    const HorizontalGuides:Map<number,string> = new Map()
     if ((movedBoxes.length === 0) || (unmovedBoxes.length === 0)) {
-      return { vertical:VerticalGuides, horizontal:HorizontalGuides }
+      return { vertical:new Map(), horizontal:new Map() }
     }
 
-    const MetricsOf = (Box:Indexable):Indexable => ({
-      xEdges:[ Box.x, Box.x+Box.Width ],  xCenter:Box.x+Box.Width/2,
-      yEdges:[ Box.y, Box.y+Box.Height ], yCenter:Box.y+Box.Height/2
-    })
-    const movedMetrics   = movedBoxes.map(MetricsOf)
-    const unmovedMetrics = unmovedBoxes.map(MetricsOf)
-
-  /**** collect coinciding coordinates - "dashed" beats "dotted" ****/
-
-    const coincide = (a:number, b:number):boolean => (
-      Math.abs(a-b) <= Tolerance
+    return collectAlignmentGuides(
+      movedBoxes.map(AlignmentMetricsOfBox),
+      unmovedBoxes.map(AlignmentMetricsOfBox),
+      1                                              // [px] - no zooming here
     )
-    const addGuide = (
-      GuideMap:Map<number,string>, Coordinate:number, LineStyle:string
-    ):void => {
-      const Key = Math.round(Coordinate)
-      if ((LineStyle === 'dashed') || (GuideMap.get(Key) == null)) {
-        GuideMap.set(Key,LineStyle)
-      }
-    }
-
-    const collectGuides = (
-      GuideMap:Map<number,string>, EdgeKey:string, CenterKey:string
-    ):void => {
-      movedMetrics.forEach((moved:any) => {
-        unmovedMetrics.forEach((unmoved:any) => {
-          moved[EdgeKey].forEach((movedEdge:number) => {
-            unmoved[EdgeKey].forEach((unmovedEdge:number) => {
-              if (coincide(movedEdge,unmovedEdge)) {
-                addGuide(GuideMap,unmovedEdge,'dashed')
-              }
-            })
-            if (coincide(movedEdge,unmoved[CenterKey])) {
-              addGuide(GuideMap,unmoved[CenterKey],'dotted')
-            }
-          })
-          unmoved[EdgeKey].forEach((unmovedEdge:number) => {
-            if (coincide(moved[CenterKey],unmovedEdge)) {
-              addGuide(GuideMap,unmovedEdge,'dotted')
-            }
-          })
-        })
-      })
-    }
-    collectGuides(VerticalGuides,  'xEdges','xCenter')
-    collectGuides(HorizontalGuides,'yEdges','yCenter')
-
-    return { vertical:VerticalGuides, horizontal:HorizontalGuides }
   }
 
   export function legacyDataFlowProcessView (PropSet:Indexable):any {
@@ -23012,98 +22343,19 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledTextlineInput ****/
 
-  export function styledTextlineInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes       = acceptableTextline(PropSet.Class) ?? ''
-        const Value         = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const invalid       = acceptableBoolean (PropSet.invalid)
-        const Placeholder   = acceptableTextline(PropSet.Placeholder)
-        const readonly      = acceptableBoolean (PropSet.readonly)
-        const minLength     = acceptableOrdinal (PropSet.minLength)
-        const maxLength     = acceptableOrdinal (PropSet.maxLength)
-        const Pattern       = acceptableTextline(PropSet.Pattern)
-        const SpellChecking = acceptableBoolean (PropSet.SpellCheck)
-        const Suggestions   = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsTextline))
-        const Size          = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled      = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput  = acceptableFunction(PropSet.onValueInput)
-        const onInput       = acceptableFunction(PropSet.onInput)
-        const onBlur        = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledTextlineInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="text" class="jcl-component styled-input styled-textline-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} spellcheck=${SpellChecking}
-        disabled=${actualDisabling} list=${SuggestionId}
-        aria-invalid=${invalid ? 'true' : undefined}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledTextlineInput = textualInputComponentFor({
+    Name:'styledTextlineInput', InputType:'text',
+    ClassName:'styled-textline-input', ValueIsValid:ValueIsTextline,
+    withSpellChecking:true, Styled:true
+  })
 
 /**** styledPasswordInput ****/
 
-  export function styledPasswordInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledPasswordInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="password" class="jcl-component styled-input styled-password-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} disabled=${actualDisabling}
-        aria-invalid=${invalid ? 'true' : undefined}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />`
-    })
-  }
+  export const styledPasswordInput = textualInputComponentFor({
+    Name:'styledPasswordInput', InputType:'password',
+    ClassName:'styled-password-input', ValueIsValid:ValueIsTextline,
+    withSuggestions:false, Styled:true
+  })
 
 /**** styledNumberInput ****/
 
@@ -23180,420 +22432,75 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledEMailAddressInput ****/
 
-  export function styledEMailAddressInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsEMailAddress(Value) || ValueIsSpecial(Value))
-        const multiple     = acceptableBoolean (PropSet.multiple)
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsEMailAddress))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledEMailAddressInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="email" class="jcl-component styled-input styled-emailaddress-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        multiple=${multiple} readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} disabled=${actualDisabling} list=${SuggestionId}
-        aria-invalid=${invalid ? 'true' : undefined}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledEMailAddressInput = textualInputComponentFor({
+    Name:'styledEMailAddressInput', InputType:'email',
+    ClassName:'styled-emailaddress-input', ValueIsValid:ValueIsEMailAddress,
+    withMultiple:true, Styled:true
+  })
 
 /**** styledPhoneNumberInput ****/
 
-  export function styledPhoneNumberInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsPhoneNumber(Value) || ValueIsSpecial(Value))
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsPhoneNumber))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledPhoneNumberInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="tel" class="jcl-component styled-input styled-phonenumber-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder} pattern=${Pattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        aria-invalid=${invalid ? 'true' : undefined}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledPhoneNumberInput = textualInputComponentFor({
+    Name:'styledPhoneNumberInput', InputType:'tel',
+    ClassName:'styled-phonenumber-input', ValueIsValid:ValueIsPhoneNumber,
+    Styled:true
+  })
 
 /**** styledURLInput ****/
 
-  export function styledURLInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsURL(Value) || ValueIsSpecial(Value))
-        const invalid      = acceptableBoolean (PropSet.invalid)
-        const Placeholder  = acceptableTextline(PropSet.Placeholder)
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const minLength    = acceptableOrdinal (PropSet.minLength)
-        const maxLength    = acceptableOrdinal (PropSet.maxLength)
-        const Pattern      = acceptableTextline(PropSet.Pattern)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsURL))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledURLInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="url" class="jcl-component styled-input styled-url-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder} pattern=${Pattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        aria-invalid=${invalid ? 'true' : undefined}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledURLInput = textualInputComponentFor({
+    Name:'styledURLInput', InputType:'url',
+    ClassName:'styled-url-input', ValueIsValid:ValueIsURL,
+    Styled:true
+  })
 
 /**** styledTimeInput ****/
 
-  export function styledTimeInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTime(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const withSeconds  = acceptableBoolean (PropSet.withSeconds)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsTime)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsTime)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsTime))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledTimeInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="time" class="jcl-component styled-input styled-time-input ${SizeClass} ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
-        readOnly=${readonly}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledTimeInput = temporalInputComponentFor({
+    Name:'styledTimeInput', InputType:'time',
+    ClassName:'styled-time-input', ValueIsValid:ValueIsTime,
+    Styled:true
+  })
 
 /**** styledDateTimeInput ****/
 
-  export function styledDateTimeInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsDateTime(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const withSeconds  = acceptableBoolean (PropSet.withSeconds)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDateTime)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDateTime)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsDateTime))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledDateTimeInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="datetime-local" class="jcl-component styled-input styled-datetime-input ${SizeClass} ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum} step=${withSeconds ? 1 : 60}
-        readOnly=${readonly}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledDateTimeInput = temporalInputComponentFor({
+    Name:'styledDateTimeInput', InputType:'datetime-local',
+    ClassName:'styled-datetime-input', ValueIsValid:ValueIsDateTime,
+    Styled:true
+  })
 
 /**** styledDateInput ****/
 
-  export function styledDateInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsDate(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDate)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDate)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsDate))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledDateInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="date" class="jcl-component styled-input styled-date-input ${SizeClass} ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum}
-        readOnly=${readonly} pattern=${JCL_DatePattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledDateInput = temporalInputComponentFor({
+    Name:'styledDateInput', InputType:'date',
+    ClassName:'styled-date-input', ValueIsValid:ValueIsDate,
+    Pattern:JCL_DatePattern, Styled:true
+  })
 
 /**** styledWeekInput ****/
 
-  export function styledWeekInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsWeek(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsWeek)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsWeek)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsWeek))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledWeekInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="week" class="jcl-component styled-input styled-week-input ${SizeClass} ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum}
-        readOnly=${readonly} pattern=${JCL_WeekPattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledWeekInput = temporalInputComponentFor({
+    Name:'styledWeekInput', InputType:'week',
+    ClassName:'styled-week-input', ValueIsValid:ValueIsWeek,
+    Pattern:JCL_WeekPattern, Styled:true
+  })
 
 /**** styledMonthInput ****/
 
-  export function styledMonthInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsMonth(Value) || ValueIsSpecial(Value))
-        const readonly     = acceptableBoolean (PropSet.readonly)
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsMonth)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsMonth)
-        const Suggestions  = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsMonth))
-        const Size         = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onInput      = acceptableFunction(PropSet.onInput)
-        const onBlur       = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledMonthInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="month" class="jcl-component styled-input styled-month-input ${SizeClass} ${Classes}" ref=${ViewRef}
-        value=${actualValue} min=${Minimum} max=${Maximum}
-        readOnly=${readonly} pattern=${JCL_MonthPattern}
-        disabled=${actualDisabling} list=${SuggestionId}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledMonthInput = temporalInputComponentFor({
+    Name:'styledMonthInput', InputType:'month',
+    ClassName:'styled-month-input', ValueIsValid:ValueIsMonth,
+    Pattern:JCL_MonthPattern, Styled:true
+  })
 
 /**** styledSearchInput ****/
 
-  export function styledSearchInput (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes       = acceptableTextline(PropSet.Class) ?? ''
-        const Value         = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
-        const invalid       = acceptableBoolean (PropSet.invalid)
-        const Placeholder   = acceptableTextline(PropSet.Placeholder)
-        const readonly      = acceptableBoolean (PropSet.readonly)
-        const minLength     = acceptableOrdinal (PropSet.minLength)
-        const maxLength     = acceptableOrdinal (PropSet.maxLength)
-        const Pattern       = acceptableTextline(PropSet.Pattern)
-        const SpellChecking = acceptableBoolean (PropSet.SpellCheck)
-        const Suggestions   = acceptableValue   (PropSet.Suggestions, (Value:any) => ValueIsListSatisfying(Value,ValueIsTextline))
-        const Size          = acceptableValue   (PropSet.Size, (Value:any) => ValueIsOneOf(Value,[ 'small','normal','large' ])) ?? 'normal'
-        const disabled      = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput  = acceptableFunction(PropSet.onValueInput)
-        const onInput       = acceptableFunction(PropSet.onInput)
-        const onBlur        = acceptableFunction(PropSet.onBlur)
-
-    /**** ignore external changes while this control is in use ****/
-
-      const { ViewRef,shownValue,ValueToShow } = useShownValue(Value)
-
-      const { actualValue,actualPlaceholder,actualDisabling } =
-        resolvedSpecialValue(ValueToShow,disabled,Placeholder)
-
-      const { _onInput,_onBlur } = useInputCallbacks({
-        Name:'styledSearchInput', actualDisabling, shownValue,
-        onInput,onValueInput,onBlur
-      })
-
-    /**** actual rendering ****/
-
-      const { SuggestionId,SuggestionList } = useDatalist(Suggestions)
-
-      const SizeClass = SizeClassFor(Size)
-
-      return html`<input type="search" class="jcl-component styled-input styled-search-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
-        readOnly=${readonly} placeholder=${actualPlaceholder}
-        pattern=${Pattern} spellcheck=${SpellChecking}
-        disabled=${actualDisabling} list=${SuggestionId}
-        aria-invalid=${invalid ? 'true' : undefined}
-        onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
-      />${SuggestionList}`
-    })
-  }
+  export const styledSearchInput = textualInputComponentFor({
+    Name:'styledSearchInput', InputType:'search',
+    ClassName:'styled-search-input', ValueIsValid:ValueIsTextline,
+    withSpellChecking:true, Styled:true
+  })
 
 /**** styledColorInput ****/
 
@@ -24522,6 +23429,55 @@ JCL_RealDrawEditor.registerEffect({
     }
   `)
 
+/**** useOverlayTrigger - shared trigger logic of popover-like components ****/
+
+// resolves the surrounding "OverlayBase", toggles the named overlay upon
+// trigger clicks and reports state changes through "onOpenChange" - the
+// given "OverlayFor" callback receives trigger and base elements and returns
+// the descriptor parts specific to the calling component
+
+  function useOverlayTrigger (Options:{
+    ComponentName:string,                     // e.g. 'styledPopover'
+    Name?:string, NamePrefix:string,          // e.g. 'styled-popover-'
+    onOpenChange?:Function,
+    OverlayFor:(Trigger:any, Base:any) => Indexable
+  }):Indexable {
+    const { ComponentName, Name, NamePrefix, onOpenChange, OverlayFor } = Options
+
+    const internalId  = useId()
+    const OverlayName = Name ?? NamePrefix + internalId
+
+    const ViewRef = useRef<any>(undefined)
+
+    const { openOverlay, closeOverlay, OverlayIsOpen } = useOverlayContext()
+
+    function _onClick ():void {
+      if (OverlayIsOpen(OverlayName)) {
+        closeOverlay(OverlayName)        // "onClose" will report state change
+        return
+      }
+
+      const Trigger = ViewRef.current
+      const Base    = Trigger?.closest('.jcl-component.overlay-base')
+      if ((Trigger == null) || (Base == null)) throwError(
+        `MissingOverlayBase: "${ComponentName}" must be used within an "OverlayBase"`
+      )
+
+      openOverlay({
+        Name:OverlayName, isModal:false,
+        ...OverlayFor(Trigger,Base),
+        onOpen:() => executeCallback(
+          ComponentName + ' callback "onOpenChange"', onOpenChange, true
+        ),
+        onClose:() => executeCallback(
+          ComponentName + ' callback "onOpenChange"', onOpenChange, false
+        ),
+      })
+    }
+
+    return { OverlayName, ViewRef, closeOverlay, _onClick }
+  }
+
 /**** styledPopover ****/
 
 // looks like a shadcn/ui "Popover", but builds on JCL's overlay logic and
@@ -24547,68 +23503,46 @@ JCL_RealDrawEditor.registerEffect({
         const Height       = acceptableOrdinal (PropSet.Height)
         const onOpenChange = acceptableFunction(PropSet.onOpenChange)
 
-      const internalId  = useId()
-      const OverlayName = Name ?? 'styled-popover-'+internalId
-
-      const ViewRef = useRef<any>(undefined)
-
-      const { openOverlay, closeOverlay, OverlayIsOpen } = useOverlayContext()
-
-      function _onClick ():void {
-        if (OverlayIsOpen(OverlayName)) {
-          closeOverlay(OverlayName)      // "onClose" will report state change
-          return
-        }
+      const { ViewRef, _onClick } = useOverlayTrigger({
+        ComponentName:'styledPopover', Name, NamePrefix:'styled-popover-',
+        onOpenChange,
 
       /**** compute the overlay position from the trigger geometry ****/
 
-        const Trigger = ViewRef.current
-        const Base    = Trigger?.closest('.jcl-component.overlay-base')
-        if ((Trigger == null) || (Base == null)) throwError(
-          'MissingOverlayBase: "styledPopover" must be used within an "OverlayBase"'
-        )
+        OverlayFor:(Trigger:any, Base:any):Indexable => {
+          const TriggerBox = Trigger.getBoundingClientRect()
+          const BaseBox    = Base.getBoundingClientRect()
 
-        const TriggerBox = Trigger.getBoundingClientRect()
-        const BaseBox    = Base.getBoundingClientRect()
+          const TriggerLeft = TriggerBox.left - BaseBox.left + Base.scrollLeft
+          const TriggerTop  = TriggerBox.top  - BaseBox.top  + Base.scrollTop
 
-        const TriggerLeft = TriggerBox.left - BaseBox.left + Base.scrollLeft
-        const TriggerTop  = TriggerBox.top  - BaseBox.top  + Base.scrollTop
+          let OffsetX, OffsetY
+          switch (true) {
+            case (Placement === 'top') && (Height != null):
+              OffsetX = TriggerLeft + TriggerBox.width/2 - Width/2
+              OffsetY = TriggerTop - Height - 4
+              break
+            case Placement === 'left':
+              OffsetX = TriggerLeft - Width - 4
+              OffsetY = TriggerTop + (Height == null ? 0 : TriggerBox.height/2 - Height/2)
+              break
+            case Placement === 'right':
+              OffsetX = TriggerLeft + TriggerBox.width + 4
+              OffsetY = TriggerTop + (Height == null ? 0 : TriggerBox.height/2 - Height/2)
+              break
+            default:                     // 'bottom' (and 'top' w/o "Height")
+              OffsetX = TriggerLeft + TriggerBox.width/2 - Width/2
+              OffsetY = TriggerTop + TriggerBox.height + 4
+          }
 
-        let OffsetX, OffsetY
-        switch (true) {
-          case (Placement === 'top') && (Height != null):
-            OffsetX = TriggerLeft + TriggerBox.width/2 - Width/2
-            OffsetY = TriggerTop - Height - 4
-            break
-          case Placement === 'left':
-            OffsetX = TriggerLeft - Width - 4
-            OffsetY = TriggerTop + (Height == null ? 0 : TriggerBox.height/2 - Height/2)
-            break
-          case Placement === 'right':
-            OffsetX = TriggerLeft + TriggerBox.width + 4
-            OffsetY = TriggerTop + (Height == null ? 0 : TriggerBox.height/2 - Height/2)
-            break
-          default:                       // 'bottom' (and 'top' w/o "Height")
-            OffsetX = TriggerLeft + TriggerBox.width/2 - Width/2
-            OffsetY = TriggerTop + TriggerBox.height + 4
+          return {
+            Renderer:() => html`<div class="jcl-component styled-popover-panel">
+              ${Renderer({})}
+            </>`,
+            OffsetX, OffsetY, Width, Height,
+          }
         }
-
-      /**** now open the actual overlay ****/
-
-        openOverlay({
-          Name:OverlayName, isModal:false,
-          Renderer:() => html`<div class="jcl-component styled-popover-panel">
-            ${Renderer({})}
-          </>`,
-          OffsetX, OffsetY, Width, Height,
-          onOpen:() => executeCallback(
-            'styledPopover callback "onOpenChange"', onOpenChange, true
-          ),
-          onClose:() => executeCallback(
-            'styledPopover callback "onOpenChange"', onOpenChange, false
-          ),
-        })
-      }
+      })
 
     /**** actual rendering (of the trigger only) ****/
 
@@ -24635,8 +23569,10 @@ JCL_RealDrawEditor.registerEffect({
     }
 
   /**** restyle the hosting OverlayView in the shadcn/ui way ****/
+  /**** (shared with "styledDropDownMenu")                    ****/
 
-    .jcl-overlay-view:has(.styled-popover-panel) {
+    .jcl-overlay-view:has(.styled-popover-panel),
+    .jcl-overlay-view:has(.styled-dropdown-menu-panel) {
       border:solid 1px var(--jcl-border-color,#ebebeb);
       border-radius:var(--jcl-border-radius,8px);
       background:var(--jcl-bg-color,#ffffff);
@@ -24666,59 +23602,37 @@ JCL_RealDrawEditor.registerEffect({
         const Renderer     = acceptableFunction(PropSet.Renderer) ?? missingProperty('Renderer')
         const onOpenChange = acceptableFunction(PropSet.onOpenChange)
 
-      const internalId  = useId()
-      const OverlayName = Name ?? 'styled-dropdown-menu-'+internalId
+      const { OverlayName, ViewRef, closeOverlay, _onClick } = useOverlayTrigger({
+        ComponentName:'styledDropDownMenu', Name, NamePrefix:'styled-dropdown-menu-',
+        onOpenChange,
 
-      const ViewRef = useRef<any>(undefined)
+      /**** the menu panel opens below the trigger, left-aligned ****/
 
-      const { openOverlay, closeOverlay, OverlayIsOpen } = useOverlayContext()
+        OverlayFor:(Trigger:any, Base:any):Indexable => {
+          const TriggerBox = Trigger.getBoundingClientRect()
+          const BaseBox    = Base.getBoundingClientRect()
+
+          const OffsetX = TriggerBox.left - BaseBox.left + Base.scrollLeft
+          const OffsetY = (
+            TriggerBox.top - BaseBox.top + Base.scrollTop + TriggerBox.height + 4
+          )
+
+          return {
+            Renderer:() => html`<div class="jcl-component styled-dropdown-menu-panel"
+              role="menu" onClick=${_onPanelClick}
+            >
+              ${Renderer({})}
+            </>`,
+            OffsetX, OffsetY, minWidth:128,
+          }
+        }
+      })
 
     /**** clicking any (enabled) menu item closes the menu ****/
 
       function _onPanelClick (Event:any):void {
         const Item = Event.target.closest('.styled-dropdown-menu-item')
         if ((Item != null) && ! Item.disabled) { closeOverlay(OverlayName) }
-      }
-
-      function _onClick ():void {
-        if (OverlayIsOpen(OverlayName)) {
-          closeOverlay(OverlayName)      // "onClose" will report state change
-          return
-        }
-
-      /**** compute the overlay position from the trigger geometry ****/
-
-        const Trigger = ViewRef.current
-        const Base    = Trigger?.closest('.jcl-component.overlay-base')
-        if ((Trigger == null) || (Base == null)) throwError(
-          'MissingOverlayBase: "styledDropDownMenu" must be used within an "OverlayBase"'
-        )
-
-        const TriggerBox = Trigger.getBoundingClientRect()
-        const BaseBox    = Base.getBoundingClientRect()
-
-        const OffsetX = TriggerBox.left - BaseBox.left + Base.scrollLeft
-        const OffsetY = (
-          TriggerBox.top - BaseBox.top + Base.scrollTop + TriggerBox.height + 4
-        )
-
-      /**** now open the actual overlay ****/
-
-        openOverlay({
-          Name:OverlayName, isModal:false,
-          Renderer:() => html`<div class="jcl-component styled-dropdown-menu-panel"
-            role="menu" onClick=${_onPanelClick}
-          >
-            ${Renderer({})}
-          </>`,
-          OffsetX, OffsetY, minWidth:128,
-          onOpen:() => executeCallback(
-            'styledDropDownMenu callback "onOpenChange"', onOpenChange, true
-          ),
-          onClose:() => executeCallback(
-            'styledDropDownMenu callback "onOpenChange"', onOpenChange, false
-          ),
-        })
       }
 
     /**** actual rendering (of the trigger only) ****/
@@ -24842,6 +23756,9 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "DropdownMenu", based on JCL swatches ****/
 
+// the shell of the hosting OverlayView is shared with "styledPopover" (s.
+// there), the menu item rules are shared with "styledCommandItem"
+
   installStylesheetFor('jcl-component.styled-dropdown-menu',`
     .jcl-component.styled-dropdown-menu {
       display:inline-block;
@@ -24853,21 +23770,11 @@ JCL_RealDrawEditor.registerEffect({
       font-size:14px;
     }
 
-  /**** restyle the hosting OverlayView in the shadcn/ui way ****/
-
-    .jcl-overlay-view:has(.styled-dropdown-menu-panel) {
-      border:solid 1px var(--jcl-border-color,#ebebeb);
-      border-radius:var(--jcl-border-radius,8px);
-      background:var(--jcl-bg-color,#ffffff);
-      color:var(--jcl-fg-color,#0a0a0a);
-      box-shadow:0px 4px 6px -1px rgba(0,0,0,0.1),
-        0px 2px 4px -2px rgba(0,0,0,0.1);
-    }
-
   /**** menu items (and submenu triggers, which look just like them) ****/
 
     .styled-dropdown-menu-item,
-    .styled-dropdown-menu-submenu > .submenu-trigger {
+    .styled-dropdown-menu-submenu > .submenu-trigger,
+    .styled-command-item {
       display:flex; align-items:center;
       gap:8px; width:100%;
       border:none; border-radius:calc(var(--jcl-border-radius,8px) - 4px);
@@ -24882,7 +23789,8 @@ JCL_RealDrawEditor.registerEffect({
     }
 
     .styled-dropdown-menu-item > .icon,
-    .styled-dropdown-menu-submenu > .submenu-trigger > .icon {
+    .styled-dropdown-menu-submenu > .submenu-trigger > .icon,
+    .styled-command-item > .icon {
       display:inline-flex; align-items:center; justify-content:center;
       flex-shrink:0; width:18px;
     }
@@ -24891,7 +23799,10 @@ JCL_RealDrawEditor.registerEffect({
     .styled-dropdown-menu-item:focus-visible,
     .styled-dropdown-menu-submenu > .submenu-trigger:hover,
     .styled-dropdown-menu-submenu > .submenu-trigger:focus-visible,
-    .styled-dropdown-menu-submenu.open > .submenu-trigger {
+    .styled-dropdown-menu-submenu.open > .submenu-trigger,
+    .styled-command-item:hover,
+    .styled-command-item:focus-visible,
+    .styled-command-item.highlighted {
       background:var(--jcl-accent-bg-color,#f7f7f7);
       color:var(--jcl-accent-fg-color,#171717);
     }
@@ -24908,12 +23819,14 @@ JCL_RealDrawEditor.registerEffect({
     }
 
     .styled-dropdown-menu-item:disabled,
-    .styled-dropdown-menu-submenu > .submenu-trigger:disabled {
+    .styled-dropdown-menu-submenu > .submenu-trigger:disabled,
+    .styled-command-item:disabled {
       pointer-events:none; cursor:not-allowed;
       opacity:0.5;
     }
 
-    .styled-dropdown-menu-item > .shortcut {
+    .styled-dropdown-menu-item > .shortcut,
+    .styled-command-item > .shortcut {
       margin-left:auto;
       font-size:12px;
       color:var(--jcl-muted-fg-color,#737373);
@@ -25059,54 +23972,34 @@ JCL_RealDrawEditor.registerEffect({
         const Width        = acceptableOrdinal (PropSet.Width) ?? 512
         const onOpenChange = acceptableFunction(PropSet.onOpenChange)
 
-      const internalId  = useId()
-      const OverlayName = Name ?? 'styled-command-palette-'+internalId
+      const { OverlayName, ViewRef, closeOverlay, _onClick } = useOverlayTrigger({
+        ComponentName:'styledCommandPalette', Name, NamePrefix:'styled-command-palette-',
+        onOpenChange,
 
-      const ViewRef = useRef<any>(undefined)
+      /**** the palette opens horizontally centered, at 15% from the top ****/
 
-      const { openOverlay, closeOverlay, OverlayIsOpen } = useOverlayContext()
+        OverlayFor:(Trigger:any, Base:any):Indexable => {
+          const OffsetX = Base.scrollLeft + Math.max(0,(Base.clientWidth-Width)/2)
+          const OffsetY = Base.scrollTop  + Base.clientHeight*0.15
+
+          return {
+            Renderer:() => html`<div class="jcl-component styled-command-palette"
+              onClick=${_onPanelClick}
+            >
+              <${CommandPanel}
+                Renderer=${Renderer} Placeholder=${Placeholder} EmptyText=${EmptyText}
+              />
+            </>`,
+            OffsetX, OffsetY, Width,
+          }
+        }
+      })
 
     /**** clicking any (enabled) command item closes the palette ****/
 
       function _onPanelClick (Event:any):void {
         const Item = Event.target.closest('.styled-command-item')
         if ((Item != null) && ! Item.disabled) { closeOverlay(OverlayName) }
-      }
-
-      function _onClick ():void {
-        if (OverlayIsOpen(OverlayName)) {
-          closeOverlay(OverlayName)      // "onClose" will report state change
-          return
-        }
-
-      /**** the palette opens horizontally centered, at 15% from the top ****/
-
-        const Trigger = ViewRef.current
-        const Base    = Trigger?.closest('.jcl-component.overlay-base')
-        if ((Trigger == null) || (Base == null)) throwError(
-          'MissingOverlayBase: "styledCommandPalette" must be used within an "OverlayBase"'
-        )
-
-        const OffsetX = Base.scrollLeft + Math.max(0,(Base.clientWidth-Width)/2)
-        const OffsetY = Base.scrollTop  + Base.clientHeight*0.15
-
-        openOverlay({
-          Name:OverlayName, isModal:false,
-          Renderer:() => html`<div class="jcl-component styled-command-palette"
-            onClick=${_onPanelClick}
-          >
-            <${CommandPanel}
-              Renderer=${Renderer} Placeholder=${Placeholder} EmptyText=${EmptyText}
-            />
-          </>`,
-          OffsetX, OffsetY, Width,
-          onOpen:() => executeCallback(
-            'styledCommandPalette callback "onOpenChange"', onOpenChange, true
-          ),
-          onClose:() => executeCallback(
-            'styledCommandPalette callback "onOpenChange"', onOpenChange, false
-          ),
-        })
       }
 
     /**** actual rendering (of the trigger only) ****/
@@ -25188,6 +24081,9 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Command", based on JCL swatches ****/
 
+// the command item rules are shared with the menu items of
+// "styledDropDownMenu" (s. there)
+
   installStylesheetFor('jcl-component.styled-command-palette',`
     .jcl-component.styled-command-palette-trigger {
       display:inline-block;
@@ -25258,43 +24154,6 @@ JCL_RealDrawEditor.registerEffect({
 
     .styled-command-group:not(:has(.styled-command-item)) {
       display:none;
-    }
-
-    .styled-command-item {
-      display:flex; align-items:center;
-      gap:8px; width:100%;
-      border:none; border-radius:calc(var(--jcl-border-radius,8px) - 4px);
-      background:transparent;
-      color:var(--jcl-fg-color,#0a0a0a);
-      padding:6px 8px;
-      font:inherit; font-size:14px; text-align:left;
-      white-space:nowrap;
-      cursor:pointer; user-select:none;
-      outline:none;
-      transition:background-color 0.15s ease, color 0.15s ease;
-    }
-
-    .styled-command-item > .icon {
-      display:inline-flex; align-items:center; justify-content:center;
-      flex-shrink:0; width:18px;
-    }
-
-    .styled-command-item:hover,
-    .styled-command-item:focus-visible,
-    .styled-command-item.highlighted {
-      background:var(--jcl-accent-bg-color,#f7f7f7);
-      color:var(--jcl-accent-fg-color,#171717);
-    }
-
-    .styled-command-item:disabled {
-      pointer-events:none; cursor:not-allowed;
-      opacity:0.5;
-    }
-
-    .styled-command-item > .shortcut {
-      margin-left:auto;
-      font-size:12px;
-      color:var(--jcl-muted-fg-color,#737373);
     }
 
   /**** the "empty" message appears when nothing matches at all ****/
@@ -27655,43 +26514,29 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledTableHeader/Body/Footer ****/
 
-// simple wrappers around thead, tbody and tfoot
+// simple wrappers around thead, tbody and tfoot - "renderedStyledContainer"
+// is deliberately not used here as it would add a "jcl-component" class
+// which broke the table layout
 
-  export function styledTableHeader (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
+  function TablePartFor (
+    Tag:string, ClassName:string
+  ):(PropSet:Indexable) => any {
+    return function TablePart (PropSet:Indexable):any {
+      return safelyRendered(() => {
+        PropSet = parseablePropSet(PropSet)
+          const Classes = acceptableTextline(PropSet.Class) ?? ''
+          const Style   = acceptableText    (PropSet.Style)
 
-      return html`<thead class="styled-table-header ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >${PropSet.children}</>`
-    })
+        return html`<${Tag} class="${ClassName} ${Classes}"
+          style=${Style} ...${PropSet.RestProps}
+        >${PropSet.children}</>`
+      })
+    }
   }
 
-  export function styledTableBody (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<tbody class="styled-table-body ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >${PropSet.children}</>`
-    })
-  }
-
-  export function styledTableFooter (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes = acceptableTextline(PropSet.Class) ?? ''
-        const Style   = acceptableText    (PropSet.Style)
-
-      return html`<tfoot class="styled-table-footer ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >${PropSet.children}</>`
-    })
-  }
+  export const styledTableHeader = TablePartFor('thead','styled-table-header')
+  export const styledTableBody   = TablePartFor('tbody','styled-table-body')
+  export const styledTableFooter = TablePartFor('tfoot','styled-table-footer')
 
 /**** styledTableRow ****/
 
@@ -28196,7 +27041,7 @@ JCL_RealDrawEditor.registerEffect({
 
     /**** actual rendering ****/
 
-      return html`<div class="jcl-component styled-month-view ${Classes}"
+      return html`<div class="jcl-component styled-calendar-view styled-month-view ${Classes}"
         style=${Style} ...${PropSet.RestProps}
       >
         <div class="header">
@@ -28223,25 +27068,28 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Calendar", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-month-view',`
-    .jcl-component.styled-month-view {
+// the frame (root, header, caption, navigation and chevrons) is shared by
+// "styledMonthView", "styledQuarterView" and "styledYearView"
+
+  installStylesheetFor('jcl-component.styled-calendar-view',`
+    .jcl-component.styled-calendar-view {
       display:inline-block;
       width:fit-content;
       padding:12px;
       font-size:14px;
     }
 
-    .jcl-component.styled-month-view > .header {
+    .jcl-component.styled-calendar-view > .header {
       display:flex; align-items:center; justify-content:space-between;
       margin-bottom:8px;
     }
 
-    .jcl-component.styled-month-view > .header > .caption {
+    .jcl-component.styled-calendar-view > .header > .caption {
       font-weight:500;
       user-select:none;
     }
 
-    .jcl-component.styled-month-view > .header > .nav {
+    .jcl-component.styled-calendar-view > .header > .nav {
       display:inline-flex; align-items:center; justify-content:center;
       width:28px; height:28px;
       border:none; border-radius:var(--jcl-border-radius,8px);
@@ -28250,37 +27098,48 @@ JCL_RealDrawEditor.registerEffect({
       cursor:pointer; outline:none;
       transition:background-color 0.15s ease, color 0.15s ease;
     }
-    .jcl-component.styled-month-view > .header > .nav:hover {
+    .jcl-component.styled-calendar-view > .header > .nav:hover {
       background:var(--jcl-accent-bg-color,#f7f7f7);
       color:var(--jcl-accent-fg-color,#171717);
     }
-    .jcl-component.styled-month-view > .header > .nav:focus-visible {
+    .jcl-component.styled-calendar-view > .header > .nav:focus-visible {
       box-shadow:0px 0px 0px 2px color-mix(
         in srgb, var(--jcl-ring-color,#0075ff) 50%, transparent
       );
     }
-    .jcl-component.styled-month-view > .header > .nav:disabled {
+    .jcl-component.styled-calendar-view > .header > .nav:disabled {
       pointer-events:none; cursor:not-allowed;
       opacity:0.5;
     }
 
-    .jcl-component.styled-month-view .chevron-left,
-    .jcl-component.styled-month-view .chevron-right {
+    .jcl-component.styled-calendar-view .chevron-left,
+    .jcl-component.styled-calendar-view .chevron-right {
       display:inline-block;
       width:16px; height:16px;
       background:currentColor;
       pointer-events:none;
       ${CSS_MaskIcon}
     }
-    .jcl-component.styled-month-view .chevron-left {
+    .jcl-component.styled-calendar-view .chevron-left {
       ${CSS_ChevronLeft}
     }
-    .jcl-component.styled-month-view .chevron-right {
+    .jcl-component.styled-calendar-view .chevron-right {
       ${CSS_ChevronRight}
     }
 
-  /**** the day grid itself ****/
+  /**** multi-month views hide the navigation of their inner month views ****/
 
+    .jcl-component.styled-calendar-view .styled-month-view > .header > .nav {
+      display:none;
+    }
+    .jcl-component.styled-calendar-view .styled-month-view > .header {
+      justify-content:center;
+    }
+  `)
+
+/**** the day grid of "styledMonthView" itself ****/
+
+  installStylesheetFor('jcl-component.styled-month-view',`
     .jcl-component.styled-month-view > .grid {
       display:grid;
       grid-template-columns:repeat(7,32px);
@@ -28341,6 +27200,106 @@ JCL_RealDrawEditor.registerEffect({
     }
   `)
 
+/**** multiMonthViewFor - shared core of Quarter- and YearView ****/
+
+// generates a view showing several "styledMonthView"s (with their own
+// navigation hidden via CSS) under a common header which navigates a whole
+// "period" (a quarter or a year) at once
+
+  type JCL_MultiMonthViewOptions = {
+    Name:string,                              // e.g. 'styledQuarterView'
+    ClassName:string,                         // e.g. 'styled-quarter-view'
+    PeriodKey:string,                         // e.g. 'Quarter'
+    ValueIsPeriod:(Value:any) => boolean,
+    defaultPeriodFor:(ISODate:string) => any, // periods may be strings/numbers
+    shiftedPeriod:(Period:any, Delta:number) => any,
+    CaptionFor:(Period:any) => string,
+    MonthsOf:(Period:any) => string[],
+    withOrientation?:boolean
+  }
+
+  function multiMonthViewFor (
+    Options:JCL_MultiMonthViewOptions
+  ):(PropSet:Indexable) => any {
+    const {
+      Name, ClassName, PeriodKey, ValueIsPeriod,
+      defaultPeriodFor, shiftedPeriod, CaptionFor, MonthsOf,
+      withOrientation = false
+    } = Options
+    const changeCallbackName = 'on' + PeriodKey + 'Change'
+
+    return function MultiMonthView (PropSet:Indexable):any {
+      return safelyRendered(() => {
+        PropSet = parseablePropSet(PropSet)
+          const Classes        = acceptableTextline(PropSet.Class) ?? ''
+          const Style          = acceptableText    (PropSet.Style)
+          const Value          = acceptableValue   (PropSet.Value, ValueIsDate)
+          let   Period         = acceptableValue   (PropSet[PeriodKey], ValueIsPeriod)
+          const Minimum        = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDate)
+          const Maximum        = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDate)
+          const Orientation    = (withOrientation ? acceptableValue(PropSet.Orientation, (Value:any) => ValueIsOneOf(Value,[ 'horizontal','vertical' ])) ?? 'horizontal' : undefined)
+          const disabled       = acceptableBoolean (PropSet.disabled) ?? false
+          const onValueInput   = acceptableFunction(PropSet.onValueInput)
+          const onPeriodChange = acceptableFunction(PropSet[changeCallbackName])
+
+        const rerender = useRerenderer()
+
+        const TodayISO      = new Date().toLocaleDateString('sv') // 'YYYY-MM-DD'
+        const defaultPeriod = defaultPeriodFor(Value ?? TodayISO)
+
+      /**** allow setting the period externally and changing it internally ****/
+
+        const PeriodRef = useHybridValue(Period,defaultPeriod)
+        Period = PeriodRef.current
+
+        const shiftPeriod = useCallback((Delta:number, Event:any):void => {
+          consumeEvent(Event)
+
+          const shifted = shiftedPeriod(PeriodRef.current,Delta)
+          PeriodRef.current = shifted
+          rerender()
+
+          executeCallback(
+            Name + ' callback "' + changeCallbackName + '"', onPeriodChange, shifted
+          )
+        }, [ onPeriodChange, rerender ])
+
+        const _onValueInput = useCallback((ISODate:string, Event:any):void => {
+          executeCallback(
+            Name + ' callback "onValueInput"', onValueInput, ISODate,Event
+          )
+        }, [ onValueInput ])
+
+      /**** actual rendering ****/
+
+        const MonthList   = MonthsOf(Period)
+        const RootClasses = ClassName + (
+          withOrientation ? ` orientation-${Orientation}` : ''
+        )
+
+        return html`<div class="jcl-component styled-calendar-view ${RootClasses} ${Classes}"
+          style=${Style} ...${PropSet.RestProps}
+        >
+          <div class="header">
+            <button class="nav" aria-label=${'go to previous ' + PeriodKey.toLowerCase()}
+              disabled=${disabled} onClick=${(Event:any) => shiftPeriod(-1,Event)}
+            ><span class="chevron-left"/></>
+            <div class="caption">${CaptionFor(Period)}</div>
+            <button class="nav" aria-label=${'go to next ' + PeriodKey.toLowerCase()}
+              disabled=${disabled} onClick=${(Event:any) => shiftPeriod(+1,Event)}
+            ><span class="chevron-right"/></>
+          </>
+          <div class="months">
+            ${MonthList.map((Month:string) => html`<${styledMonthView}
+              Value=${Value} Month=${Month} Min=${Minimum} Max=${Maximum}
+              disabled=${disabled} onValueInput=${_onValueInput}
+            />`)}
+          </>
+        </>`
+      })
+    }
+  }
+
 /**** styledQuarterView ****/
 
 // shows a whole quarter as three "styledMonthView"s side by side (or stacked,
@@ -28358,151 +27317,42 @@ JCL_RealDrawEditor.registerEffect({
     return ValueIsStringMatching(Value,JCL_QuarterRegExp)
   }
 
-  export function styledQuarterView (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes         = acceptableTextline(PropSet.Class) ?? ''
-        const Style           = acceptableText    (PropSet.Style)
-        const Value           = acceptableValue   (PropSet.Value, ValueIsDate)
-        let   Quarter         = acceptableValue   (PropSet.Quarter, ValueIsQuarter)
-        const Minimum         = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDate)
-        const Maximum         = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDate)
-        const Orientation     = acceptableValue   (PropSet.Orientation, (Value:any) => ValueIsOneOf(Value,[ 'horizontal','vertical' ])) ?? 'horizontal'
-        const disabled        = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput    = acceptableFunction(PropSet.onValueInput)
-        const onQuarterChange = acceptableFunction(PropSet.onQuarterChange)
+  const QuarterOfISODate = (ISODate:string):string => (
+    ISODate.slice(0,4) + '-Q' + (Math.floor((Number(ISODate.slice(5,7))-1)/3)+1)
+  )
 
-      const rerender = useRerenderer()
-
-      const QuarterOfISODate = (ISODate:string):string => (
-        ISODate.slice(0,4) + '-Q' + (Math.floor((Number(ISODate.slice(5,7))-1)/3)+1)
-      )
-
-      const TodayISO       = new Date().toLocaleDateString('sv') // 'YYYY-MM-DD'
-      const defaultQuarter = QuarterOfISODate(Value ?? TodayISO)
-
-    /**** allow setting "Quarter" externally and changing it internally ****/
-
-      const QuarterRef = useHybridValue(Quarter,defaultQuarter)
-      Quarter = QuarterRef.current
-
-      const shownYear          = Number(Quarter.slice(0,4))
-      const shownQuarterNumber = Number(Quarter.slice(6))
-
-      const shiftQuarter = useCallback((Delta:number, Event:any):void => {
-        consumeEvent(Event)
-
-        const Year           = Number(QuarterRef.current.slice(0,4))
-        const QuarterNumber  = Number(QuarterRef.current.slice(6))
-        const QuarterCount   = Year*4 + (QuarterNumber-1) + Delta
-        const shiftedQuarter = (
-          Math.floor(QuarterCount/4) + '-Q' + (QuarterCount % 4 + 1)
-        )
-
-        QuarterRef.current = shiftedQuarter
-        rerender()
-
-        executeCallback(
-          'styledQuarterView callback "onQuarterChange"', onQuarterChange, shiftedQuarter
-        )
-      }, [ onQuarterChange, rerender ])
-
-      const _onValueInput = useCallback((ISODate:string, Event:any):void => {
-        executeCallback(
-          'styledQuarterView callback "onValueInput"', onValueInput, ISODate,Event
-        )
-      }, [ onValueInput ])
-
-    /**** actual rendering ****/
+  export const styledQuarterView = multiMonthViewFor({
+    Name:'styledQuarterView', ClassName:'styled-quarter-view',
+    PeriodKey:'Quarter', ValueIsPeriod:ValueIsQuarter,
+    defaultPeriodFor:QuarterOfISODate,
+    shiftedPeriod:(Quarter:string, Delta:number):string => {
+      const Year          = Number(Quarter.slice(0,4))
+      const QuarterNumber = Number(Quarter.slice(6))
+      const QuarterCount  = Year*4 + (QuarterNumber-1) + Delta
+      return Math.floor(QuarterCount/4) + '-Q' + (QuarterCount % 4 + 1)
+    },
+    CaptionFor:(Quarter:string):string => (
+      'Q' + Quarter.slice(6) + ' ' + Quarter.slice(0,4)
+    ),
+    MonthsOf:(Quarter:string):string[] => {
+      const Year          = Number(Quarter.slice(0,4))
+      const QuarterNumber = Number(Quarter.slice(6))
 
       const MonthList:string[] = []
         for (let i = 0; i < 3; i++) {
-          const MonthNumber = (shownQuarterNumber-1)*3 + 1 + i
-          MonthList.push(shownYear + '-' + String(MonthNumber).padStart(2,'0'))
+          const MonthNumber = (QuarterNumber-1)*3 + 1 + i
+          MonthList.push(Year + '-' + String(MonthNumber).padStart(2,'0'))
         }
-
-      return html`<div class="jcl-component styled-quarter-view orientation-${Orientation} ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        <div class="header">
-          <button class="nav" aria-label="go to previous quarter"
-            disabled=${disabled} onClick=${(Event:any) => shiftQuarter(-1,Event)}
-          ><span class="chevron-left"/></>
-          <div class="caption">Q${shownQuarterNumber} ${shownYear}</div>
-          <button class="nav" aria-label="go to next quarter"
-            disabled=${disabled} onClick=${(Event:any) => shiftQuarter(+1,Event)}
-          ><span class="chevron-right"/></>
-        </>
-        <div class="months">
-          ${MonthList.map((Month:string) => html`<${styledMonthView}
-            Value=${Value} Month=${Month} Min=${Minimum} Max=${Maximum}
-            disabled=${disabled} onValueInput=${_onValueInput}
-          />`)}
-        </>
-      </>`
-    })
-  }
+      return MonthList
+    },
+    withOrientation:true
+  })
 
 /**** look and feel, matching "styledMonthView" ****/
 
+// header, navigation and chevrons come from the shared "styled-calendar-view"
+
   installStylesheetFor('jcl-component.styled-quarter-view',`
-    .jcl-component.styled-quarter-view {
-      display:inline-block;
-      width:fit-content;
-      padding:12px;
-      font-size:14px;
-    }
-
-    .jcl-component.styled-quarter-view > .header {
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:8px;
-    }
-
-    .jcl-component.styled-quarter-view > .header > .caption {
-      font-weight:500;
-      user-select:none;
-    }
-
-    .jcl-component.styled-quarter-view > .header > .nav {
-      display:inline-flex; align-items:center; justify-content:center;
-      width:28px; height:28px;
-      border:none; border-radius:var(--jcl-border-radius,8px);
-      background:transparent;
-      color:var(--jcl-muted-fg-color,#737373);
-      cursor:pointer; outline:none;
-      transition:background-color 0.15s ease, color 0.15s ease;
-    }
-    .jcl-component.styled-quarter-view > .header > .nav:hover {
-      background:var(--jcl-accent-bg-color,#f7f7f7);
-      color:var(--jcl-accent-fg-color,#171717);
-    }
-    .jcl-component.styled-quarter-view > .header > .nav:focus-visible {
-      box-shadow:0px 0px 0px 2px color-mix(
-        in srgb, var(--jcl-ring-color,#0075ff) 50%, transparent
-      );
-    }
-    .jcl-component.styled-quarter-view > .header > .nav:disabled {
-      pointer-events:none; cursor:not-allowed;
-      opacity:0.5;
-    }
-
-    .jcl-component.styled-quarter-view .chevron-left,
-    .jcl-component.styled-quarter-view .chevron-right {
-      display:inline-block;
-      width:16px; height:16px;
-      background:currentColor;
-      pointer-events:none;
-      ${CSS_MaskIcon}
-    }
-    .jcl-component.styled-quarter-view .chevron-left {
-      ${CSS_ChevronLeft}
-    }
-    .jcl-component.styled-quarter-view .chevron-right {
-      ${CSS_ChevronRight}
-    }
-
-  /**** the inner month views lose their own navigation ****/
-
     .jcl-component.styled-quarter-view > .months {
       display:flex; flex-flow:row nowrap; align-items:flex-start;
       gap:8px;
@@ -28510,13 +27360,6 @@ JCL_RealDrawEditor.registerEffect({
 
     .jcl-component.styled-quarter-view.orientation-vertical > .months {
       flex-flow:column nowrap; align-items:center;
-    }
-
-    .jcl-component.styled-quarter-view .styled-month-view > .header > .nav {
-      display:none;
-    }
-    .jcl-component.styled-quarter-view .styled-month-view > .header {
-      justify-content:center;
     }
   `)
 
@@ -28530,148 +27373,31 @@ JCL_RealDrawEditor.registerEffect({
 // reported through "onYearChange"), "Min"/"Max" limit the selectable dates
 // and picking a day invokes "onValueInput" with its ISO date
 
-  export function styledYearView (PropSet:Indexable):any {
-    return safelyRendered(() => {
-      PropSet = parseablePropSet(PropSet)
-        const Classes      = acceptableTextline(PropSet.Class) ?? ''
-        const Style        = acceptableText    (PropSet.Style)
-        const Value        = acceptableValue   (PropSet.Value, ValueIsDate)
-        let   Year         = acceptableValue   (PropSet.Year, (Value:any) => ValueIsIntegerInRange(Value,1,9999))
-        const Minimum      = acceptableValue   (PropSet.Min ?? PropSet.Minimum, ValueIsDate)
-        const Maximum      = acceptableValue   (PropSet.Max ?? PropSet.Maximum, ValueIsDate)
-        const disabled     = acceptableBoolean (PropSet.disabled) ?? false
-        const onValueInput = acceptableFunction(PropSet.onValueInput)
-        const onYearChange = acceptableFunction(PropSet.onYearChange)
-
-      const rerender = useRerenderer()
-
-      const defaultYear = (
-        Value != null ? Number(Value.slice(0,4)) : new Date().getFullYear()
-      )
-
-    /**** allow setting "Year" externally and changing it internally ****/
-
-      const YearRef = useHybridValue(Year,defaultYear)
-      Year = YearRef.current
-
-      const shiftYear = useCallback((Delta:number, Event:any):void => {
-        consumeEvent(Event)
-
-        const shiftedYear = YearRef.current + Delta
-        YearRef.current = shiftedYear
-        rerender()
-
-        executeCallback(
-          'styledYearView callback "onYearChange"', onYearChange, shiftedYear
-        )
-      }, [ onYearChange, rerender ])
-
-      const _onValueInput = useCallback((ISODate:string, Event:any):void => {
-        executeCallback(
-          'styledYearView callback "onValueInput"', onValueInput, ISODate,Event
-        )
-      }, [ onValueInput ])
-
-    /**** actual rendering ****/
-
+  export const styledYearView = multiMonthViewFor({
+    Name:'styledYearView', ClassName:'styled-year-view',
+    PeriodKey:'Year',
+    ValueIsPeriod:(Value:any) => ValueIsIntegerInRange(Value,1,9999),
+    defaultPeriodFor:(ISODate:string):number => Number(ISODate.slice(0,4)),
+    shiftedPeriod:(Year:number, Delta:number):number => Year + Delta,
+    CaptionFor:(Year:number):string => String(Year),
+    MonthsOf:(Year:number):string[] => {
       const MonthList:string[] = []
         for (let MonthNumber = 1; MonthNumber <= 12; MonthNumber++) {
           MonthList.push(Year + '-' + String(MonthNumber).padStart(2,'0'))
         }
-
-      return html`<div class="jcl-component styled-year-view ${Classes}"
-        style=${Style} ...${PropSet.RestProps}
-      >
-        <div class="header">
-          <button class="nav" aria-label="go to previous year"
-            disabled=${disabled} onClick=${(Event:any) => shiftYear(-1,Event)}
-          ><span class="chevron-left"/></>
-          <div class="caption">${Year}</div>
-          <button class="nav" aria-label="go to next year"
-            disabled=${disabled} onClick=${(Event:any) => shiftYear(+1,Event)}
-          ><span class="chevron-right"/></>
-        </>
-        <div class="months">
-          ${MonthList.map((Month:string) => html`<${styledMonthView}
-            Value=${Value} Month=${Month} Min=${Minimum} Max=${Maximum}
-            disabled=${disabled} onValueInput=${_onValueInput}
-          />`)}
-        </>
-      </>`
-    })
-  }
+      return MonthList
+    }
+  })
 
 /**** look and feel, matching "styledMonthView" ****/
 
+// header, navigation and chevrons come from the shared "styled-calendar-view"
+
   installStylesheetFor('jcl-component.styled-year-view',`
-    .jcl-component.styled-year-view {
-      display:inline-block;
-      width:fit-content;
-      padding:12px;
-      font-size:14px;
-    }
-
-    .jcl-component.styled-year-view > .header {
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:8px;
-    }
-
-    .jcl-component.styled-year-view > .header > .caption {
-      font-weight:500;
-      user-select:none;
-    }
-
-    .jcl-component.styled-year-view > .header > .nav {
-      display:inline-flex; align-items:center; justify-content:center;
-      width:28px; height:28px;
-      border:none; border-radius:var(--jcl-border-radius,8px);
-      background:transparent;
-      color:var(--jcl-muted-fg-color,#737373);
-      cursor:pointer; outline:none;
-      transition:background-color 0.15s ease, color 0.15s ease;
-    }
-    .jcl-component.styled-year-view > .header > .nav:hover {
-      background:var(--jcl-accent-bg-color,#f7f7f7);
-      color:var(--jcl-accent-fg-color,#171717);
-    }
-    .jcl-component.styled-year-view > .header > .nav:focus-visible {
-      box-shadow:0px 0px 0px 2px color-mix(
-        in srgb, var(--jcl-ring-color,#0075ff) 50%, transparent
-      );
-    }
-    .jcl-component.styled-year-view > .header > .nav:disabled {
-      pointer-events:none; cursor:not-allowed;
-      opacity:0.5;
-    }
-
-    .jcl-component.styled-year-view .chevron-left,
-    .jcl-component.styled-year-view .chevron-right {
-      display:inline-block;
-      width:16px; height:16px;
-      background:currentColor;
-      pointer-events:none;
-      ${CSS_MaskIcon}
-    }
-    .jcl-component.styled-year-view .chevron-left {
-      ${CSS_ChevronLeft}
-    }
-    .jcl-component.styled-year-view .chevron-right {
-      ${CSS_ChevronRight}
-    }
-
-  /**** the inner month views lose their own navigation ****/
-
     .jcl-component.styled-year-view > .months {
       display:grid;
       grid-template-columns:repeat(3,min-content);
       gap:8px;
-    }
-
-    .jcl-component.styled-year-view .styled-month-view > .header > .nav {
-      display:none;
-    }
-    .jcl-component.styled-year-view .styled-month-view > .header {
-      justify-content:center;
     }
   `)
 

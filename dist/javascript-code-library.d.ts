@@ -412,6 +412,7 @@ export declare const HTTPMessageForStatus: {
     [code: number]: JCL_Textline;
 };
 
+/**** Icon ****/
 export declare function Icon(PropSet: Indexable): any;
 
 /**** ImageView ****/
@@ -962,8 +963,7 @@ export declare class JCL_DrawingEditor {
     /**** refreshGrid ****/
     refreshGrid(): void;
     /**** drawMoveGuides - alignment guides for moved (vs. unmoved) elements ****/
-    /**** - coinciding edges are marked with a dashed line, edges coinciding ****/
-    /**** with centres (or vice versa) with a dotted one                     ****/
+    /**** - the actual collection logic is shared (s. "Geometry Utilities")  ****/
     drawMoveGuides(): void;
     /**** showTransientGuides - draws guides and removes them again after a ****/
     /**** while (meant for keyboard-triggered movements)                    ****/
@@ -1994,15 +1994,15 @@ export declare function nativeCheckbox(PropSet: Indexable): any;
 /**** nativeColorInput ****/
 export declare function nativeColorInput(PropSet: Indexable): any;
 
-export declare function nativeDateInput(PropSet: Indexable): any;
+export declare const nativeDateInput: (PropSet: Indexable) => any;
 
-export declare function nativeDateTimeInput(PropSet: Indexable): any;
+export declare const nativeDateTimeInput: (PropSet: Indexable) => any;
 
 /**** nativeDropDown ****/
 export declare function nativeDropDown(PropSet: Indexable): any;
 
 /**** nativeEMailAddressInput ****/
-export declare function nativeEMailAddressInput(PropSet: Indexable): any;
+export declare const nativeEMailAddressInput: (PropSet: Indexable) => any;
 
 /**** nativeFileInput ****/
 export declare function nativeFileInput(PropSet: Indexable): any;
@@ -2010,7 +2010,7 @@ export declare function nativeFileInput(PropSet: Indexable): any;
 /**** nativeGauge ****/
 export declare function nativeGauge(PropSet: Indexable): any;
 
-export declare function nativeMonthInput(PropSet: Indexable): any;
+export declare const nativeMonthInput: (PropSet: Indexable) => any;
 
 /**** nativeNameForLocale — returns the language name in its own language ****/
 export declare function nativeNameForLocale(Locale: JCL_Locale): string;
@@ -2019,10 +2019,10 @@ export declare function nativeNameForLocale(Locale: JCL_Locale): string;
 export declare function nativeNumberInput(PropSet: Indexable): any;
 
 /**** nativePasswordInput ****/
-export declare function nativePasswordInput(PropSet: Indexable): any;
+export declare const nativePasswordInput: (PropSet: Indexable) => any;
 
 /**** nativePhoneNumberInput ****/
-export declare function nativePhoneNumberInput(PropSet: Indexable): any;
+export declare const nativePhoneNumberInput: (PropSet: Indexable) => any;
 
 /**** nativeProgressbar ****/
 export declare function nativeProgressbar(PropSet: Indexable): any;
@@ -2031,7 +2031,7 @@ export declare function nativeProgressbar(PropSet: Indexable): any;
 export declare function nativeRadiobutton(PropSet: Indexable): any;
 
 /**** nativeSearchInput ****/
-export declare function nativeSearchInput(PropSet: Indexable): any;
+export declare const nativeSearchInput: (PropSet: Indexable) => any;
 
 /**** nativeSlider ****/
 export declare function nativeSlider(PropSet: Indexable): any;
@@ -2040,14 +2040,14 @@ export declare function nativeSlider(PropSet: Indexable): any;
 export declare function nativeTextInput(PropSet: Indexable): any;
 
 /**** nativeTextlineInput ****/
-export declare function nativeTextlineInput(PropSet: Indexable): any;
+export declare const nativeTextlineInput: (PropSet: Indexable) => any;
 
-export declare function nativeTimeInput(PropSet: Indexable): any;
+export declare const nativeTimeInput: (PropSet: Indexable) => any;
 
 /**** nativeURLInput ****/
-export declare function nativeURLInput(PropSet: Indexable): any;
+export declare const nativeURLInput: (PropSet: Indexable) => any;
 
-export declare function nativeWeekInput(PropSet: Indexable): any;
+export declare const nativeWeekInput: (PropSet: Indexable) => any;
 
 /**** bundled exports ****/
 export declare const net: {
@@ -2214,13 +2214,13 @@ export declare function styledCommandPalette(PropSet: Indexable): any;
 export declare function styledDataTable(PropSet: Indexable): any;
 
 /**** styledDateInput ****/
-export declare function styledDateInput(PropSet: Indexable): any;
+export declare const styledDateInput: (PropSet: Indexable) => any;
 
 /**** styledDatePicker ****/
 export declare function styledDatePicker(PropSet: Indexable): any;
 
 /**** styledDateTimeInput ****/
-export declare function styledDateTimeInput(PropSet: Indexable): any;
+export declare const styledDateTimeInput: (PropSet: Indexable) => any;
 
 /**** styledDropDown ****/
 export declare function styledDropDown(PropSet: Indexable): any;
@@ -2241,7 +2241,7 @@ export declare function styledDropDownMenuSeparator(PropSet: Indexable): any;
 export declare function styledDropDownMenuSubMenu(PropSet: Indexable): any;
 
 /**** styledEMailAddressInput ****/
-export declare function styledEMailAddressInput(PropSet: Indexable): any;
+export declare const styledEMailAddressInput: (PropSet: Indexable) => any;
 
 /**** styledFAIcon ****/
 export declare function styledFAIcon(PropSet: Indexable): any;
@@ -2267,7 +2267,7 @@ export declare function styledInputGroupAddon(PropSet: Indexable): any;
 export declare function styledKbd(PropSet: Indexable): any;
 
 /**** styledMonthInput ****/
-export declare function styledMonthInput(PropSet: Indexable): any;
+export declare const styledMonthInput: (PropSet: Indexable) => any;
 
 /**** styledMonthView ****/
 export declare function styledMonthView(PropSet: Indexable): any;
@@ -2282,10 +2282,10 @@ export declare function styledNumberInput(PropSet: Indexable): any;
 export declare function styledPagination(PropSet: Indexable): any;
 
 /**** styledPasswordInput ****/
-export declare function styledPasswordInput(PropSet: Indexable): any;
+export declare const styledPasswordInput: (PropSet: Indexable) => any;
 
 /**** styledPhoneNumberInput ****/
-export declare function styledPhoneNumberInput(PropSet: Indexable): any;
+export declare const styledPhoneNumberInput: (PropSet: Indexable) => any;
 
 /**** styledPopover ****/
 export declare function styledPopover(PropSet: Indexable): any;
@@ -2293,7 +2293,7 @@ export declare function styledPopover(PropSet: Indexable): any;
 /**** styledProgressbar ****/
 export declare function styledProgressbar(PropSet: Indexable): any;
 
-export declare function styledQuarterView(PropSet: Indexable): any;
+export declare const styledQuarterView: (PropSet: Indexable) => any;
 
 /**** styledRadiobutton ****/
 export declare function styledRadiobutton(PropSet: Indexable): any;
@@ -2302,7 +2302,7 @@ export declare function styledRadiobutton(PropSet: Indexable): any;
 export declare function styledRadioGroup(PropSet: Indexable): any;
 
 /**** styledSearchInput ****/
-export declare function styledSearchInput(PropSet: Indexable): any;
+export declare const styledSearchInput: (PropSet: Indexable) => any;
 
 /**** styledSidebar ****/
 export declare function styledSidebar(PropSet: Indexable): any;
@@ -2340,17 +2340,16 @@ export declare function styledSwitch(PropSet: Indexable): any;
 /**** styledTable ****/
 export declare function styledTable(PropSet: Indexable): any;
 
-export declare function styledTableBody(PropSet: Indexable): any;
+export declare const styledTableBody: (PropSet: Indexable) => any;
 
 export declare function styledTableCell(PropSet: Indexable): any;
 
-export declare function styledTableFooter(PropSet: Indexable): any;
+export declare const styledTableFooter: (PropSet: Indexable) => any;
 
 /**** styledTableHead/Cell ****/
 export declare function styledTableHead(PropSet: Indexable): any;
 
-/**** styledTableHeader/Body/Footer ****/
-export declare function styledTableHeader(PropSet: Indexable): any;
+export declare const styledTableHeader: (PropSet: Indexable) => any;
 
 /**** styledTableRow ****/
 export declare function styledTableRow(PropSet: Indexable): any;
@@ -2362,13 +2361,13 @@ export declare function styledTabStrip(PropSet: Indexable): any;
 export declare function styledTextInput(PropSet: Indexable): any;
 
 /**** styledTextlineInput ****/
-export declare function styledTextlineInput(PropSet: Indexable): any;
+export declare const styledTextlineInput: (PropSet: Indexable) => any;
 
 /**** styledThemeSwitch ****/
 export declare function styledThemeSwitch(PropSet: Indexable): any;
 
 /**** styledTimeInput ****/
-export declare function styledTimeInput(PropSet: Indexable): any;
+export declare const styledTimeInput: (PropSet: Indexable) => any;
 
 /**** styledToast ****/
 export declare function styledToast(PropSet: Indexable): any;
@@ -2377,13 +2376,13 @@ export declare function styledToast(PropSet: Indexable): any;
 export declare function styledTooltip(PropSet: Indexable): any;
 
 /**** styledURLInput ****/
-export declare function styledURLInput(PropSet: Indexable): any;
+export declare const styledURLInput: (PropSet: Indexable) => any;
 
 /**** styledWeekInput ****/
-export declare function styledWeekInput(PropSet: Indexable): any;
+export declare const styledWeekInput: (PropSet: Indexable) => any;
 
 /**** styledYearView ****/
-export declare function styledYearView(PropSet: Indexable): any;
+export declare const styledYearView: (PropSet: Indexable) => any;
 
 /**** Subtitle ****/
 export declare function Subtitle(PropSet: Indexable): any;
@@ -2511,18 +2510,18 @@ export declare const ui: {
         Gauge: typeof nativeGauge;
         Progressbar: typeof nativeProgressbar;
         Slider: typeof nativeSlider;
-        TextlineInput: typeof nativeTextlineInput;
-        PasswordInput: typeof nativePasswordInput;
+        TextlineInput: (PropSet: Indexable) => any;
+        PasswordInput: (PropSet: Indexable) => any;
         NumberInput: typeof nativeNumberInput;
-        EMailAddressInput: typeof nativeEMailAddressInput;
-        PhoneNumberInput: typeof nativePhoneNumberInput;
-        URLInput: typeof nativeURLInput;
-        TimeInput: typeof nativeTimeInput;
-        DateTimeInput: typeof nativeDateTimeInput;
-        DateInput: typeof nativeDateInput;
-        WeekInput: typeof nativeWeekInput;
-        MonthInput: typeof nativeMonthInput;
-        SearchInput: typeof nativeSearchInput;
+        EMailAddressInput: (PropSet: Indexable) => any;
+        PhoneNumberInput: (PropSet: Indexable) => any;
+        URLInput: (PropSet: Indexable) => any;
+        TimeInput: (PropSet: Indexable) => any;
+        DateTimeInput: (PropSet: Indexable) => any;
+        DateInput: (PropSet: Indexable) => any;
+        WeekInput: (PropSet: Indexable) => any;
+        MonthInput: (PropSet: Indexable) => any;
+        SearchInput: (PropSet: Indexable) => any;
         FileInput: typeof nativeFileInput;
         ColorInput: typeof nativeColorInput;
         DropDown: typeof nativeDropDown;
@@ -2537,18 +2536,18 @@ export declare const ui: {
         Gauge: typeof styledGauge;
         Progressbar: typeof styledProgressbar;
         Slider: typeof styledSlider;
-        TextlineInput: typeof styledTextlineInput;
-        PasswordInput: typeof styledPasswordInput;
+        TextlineInput: (PropSet: Indexable) => any;
+        PasswordInput: (PropSet: Indexable) => any;
         NumberInput: typeof styledNumberInput;
-        EMailAddressInput: typeof styledEMailAddressInput;
-        PhoneNumberInput: typeof styledPhoneNumberInput;
-        URLInput: typeof styledURLInput;
-        TimeInput: typeof styledTimeInput;
-        DateTimeInput: typeof styledDateTimeInput;
-        DateInput: typeof styledDateInput;
-        WeekInput: typeof styledWeekInput;
-        MonthInput: typeof styledMonthInput;
-        SearchInput: typeof styledSearchInput;
+        EMailAddressInput: (PropSet: Indexable) => any;
+        PhoneNumberInput: (PropSet: Indexable) => any;
+        URLInput: (PropSet: Indexable) => any;
+        TimeInput: (PropSet: Indexable) => any;
+        DateTimeInput: (PropSet: Indexable) => any;
+        DateInput: (PropSet: Indexable) => any;
+        WeekInput: (PropSet: Indexable) => any;
+        MonthInput: (PropSet: Indexable) => any;
+        SearchInput: (PropSet: Indexable) => any;
         FileInput: typeof styledFileInput;
         ColorInput: typeof styledColorInput;
         DropDown: typeof styledDropDown;
@@ -2586,9 +2585,9 @@ export declare const ui: {
         SidebarSeparator: typeof styledSidebarSeparator;
         SidebarGroup: typeof styledSidebarGroup;
         Table: typeof styledTable;
-        TableHeader: typeof styledTableHeader;
-        TableBody: typeof styledTableBody;
-        TableFooter: typeof styledTableFooter;
+        TableHeader: (PropSet: Indexable) => any;
+        TableBody: (PropSet: Indexable) => any;
+        TableFooter: (PropSet: Indexable) => any;
         TableRow: typeof styledTableRow;
         TableHead: typeof styledTableHead;
         TableCell: typeof styledTableCell;
@@ -2602,8 +2601,8 @@ export declare const ui: {
         RadioGroup: typeof styledRadioGroup;
         Combobox: typeof styledCombobox;
         MonthView: typeof styledMonthView;
-        QuarterView: typeof styledQuarterView;
-        YearView: typeof styledYearView;
+        QuarterView: (PropSet: Indexable) => any;
+        YearView: (PropSet: Indexable) => any;
         DatePicker: typeof styledDatePicker;
         TabStrip: typeof styledTabStrip;
         Accordion: typeof styledAccordion;
