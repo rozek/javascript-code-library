@@ -4,8 +4,6 @@
 *                                                                              *
 *******************************************************************************/
 
-  import { z } from 'zod'
-
   import {
 //  throwError,      // will be redefined locally because of TypeScript compiler
   quoted,
@@ -64,17 +62,22 @@
 
 /**** generic constructor for asynchronous functions ****/
 
-  export const AsyncFunction = (async () => {}).constructor
+  export const AsyncFunction = /*@__PURE__*/ (async () => {}).constructor
 
 /**** simplify error tracking in asynchronous code ****/
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('unhandledrejection', (Event) => {
-      console.error(
-        'caught unhandled error in Promise:',
-        Event.reason?.stack ?? Event.reason?.message, Event
-      )
-    })
+// registered upon first component rendering (s. "safelyRendered") in order
+// to keep this module free of side effects at load time
+
+  function _trackUnhandledRejections ():void {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('unhandledrejection', (Event) => {
+        console.error(
+          'caught unhandled error in Promise:',
+          Event.reason?.stack ?? Event.reason?.message, Event
+        )
+      })
+    }
   }
 
 //----------------------------------------------------------------------------//
@@ -119,12 +122,6 @@ debugger               // not to be removed (helps debugging within the browser)
 //--                 Classification and Validation Functions                  --
 //------------------------------------------------------------------------------
 
-/**** ClassifierFor - new Zod support function ****/
-
-  function ClassifierFor<T>(Schema:z.ZodType<T>):(Value:any) => Value is T {
-    return (Value:any):Value is T => Schema.safeParse(Value).success
-  }
-
 /**** ValidatorQuadrupleFor - builds the usual validator quadruple ****/
 
 // returns the validators [ allowXXX,allowedXXX, expectXXX,expectedXXX ] for a
@@ -149,7 +146,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Identifier ****/
 
   export const [ allowIdentifier,allowedIdentifier, expectIdentifier,expectedIdentifier ] =
-    ValidatorQuadrupleFor(ValueIsIdentifier,'JCL identifier')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsIdentifier,'JCL identifier')
 
 /**** ValueIsName ****/
 
@@ -160,7 +157,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Name ****/
 
   export const [ allowName,allowedName, expectName,expectedName ] =
-    ValidatorQuadrupleFor(ValueIsName,'name')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsName,'name')
 
 /**** ValueIsPath ****/
 
@@ -172,7 +169,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Path ****/
 
   export const [ allowPath,allowedPath, expectPath,expectedPath ] =
-    ValidatorQuadrupleFor(ValueIsPath,'path')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsPath,'path')
 
 /**** ValueIsPhoneNumber ****/
 
@@ -184,7 +181,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]PhoneNumber ****/
 
   export const [ allowPhoneNumber,allowedPhoneNumber, expectPhoneNumber,expectedPhoneNumber ] =
-    ValidatorQuadrupleFor(ValueIsPhoneNumber,'phone number')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsPhoneNumber,'phone number')
 
 /**** ValueIsListOfEMailAddresses ****/
 
@@ -236,7 +233,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]ISOLanguageCode ****/
 
   export const [ allowISOLanguageCode,allowedISOLanguageCode, expectISOLanguageCode,expectedISOLanguageCode ] =
-    ValidatorQuadrupleFor(ValueIsISOLanguageCode,'ISO 639-1 Language Code')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsISOLanguageCode,'ISO 639-1 Language Code')
 
 /**** ValueIsMIMEType ****/
 
@@ -249,7 +246,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]MIMEType ****/
 
   export const [ allowMIMEType,allowedMIMEType, expectMIMEType,expectedMIMEType ] =
-    ValidatorQuadrupleFor(ValueIsMIMEType,'MIME type')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsMIMEType,'MIME type')
 
 /**** ValueIsTextFormat ****/
 
@@ -323,7 +320,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Promise ****/
 
   export const [ allowPromise,allowedPromise, expectPromise,expectedPromise ] =
-    ValidatorQuadrupleFor(ValueIsPromise,'JavaScript Promise or thenable')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsPromise,'JavaScript Promise or thenable')
 
 /**** ValueIsAbortSignal ****/
 
@@ -338,7 +335,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]AbortSignal ****/
 
   export const [ allowAbortSignal,allowedAbortSignal, expectAbortSignal,expectedAbortSignal ] =
-    ValidatorQuadrupleFor(ValueIsAbortSignal,'JavaScript abort signal')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsAbortSignal,'JavaScript abort signal')
 
 //----------------------------------------------------------------------------//
 //                           System Characteristics                           //
@@ -936,7 +933,11 @@ debugger               // not to be removed (helps debugging within the browser)
 
   /**** ServerWhitelist (for SearXNG servers) ****/
 
-    _ServerWhitelist:{} as Indexable,
+    _ServerWhitelist:{
+      'http://127.0.0.1:8080':true, 'http://127.0.0.1:8888':true,
+      'http://localhost:8080':true, 'http://localhost:8888':true,
+      'http://[::1]:8080':true,     'http://[::1]:8888':true,
+    } as Indexable,
 
     get ServerWhitelist ():JCL_URL[] { return Array.from(Object.keys(SearXNG._ServerWhitelist)) },
     set ServerWhitelist (URLList:JCL_URL[]) {
@@ -1112,7 +1113,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
   /**** ResultBlacklist (for query results) ****/
 
-    _ResultBlacklist:{} as Record<string,true>,
+    _ResultBlacklist:{ 'https://www.sjmed.com':true } as Record<string,true>,
 
     get ResultBlacklist ():JCL_URL[] { return Object.keys(SearXNG._ResultBlacklist) as JCL_URL[] },
     set ResultBlacklist (URLList:JCL_URL[]) {
@@ -1165,19 +1166,6 @@ debugger               // not to be removed (helps debugging within the browser)
     },
   }
 
-  SearXNG.Configuration = {
-    ServerChoice:   'public',
-    customServer:   { Authentication:'none' },
-    ServerBlacklist:[],
-    ServerWhitelist:[
-      'http://127.0.0.1:8080', 'http://127.0.0.1:8888',
-      'http://localhost:8080', 'http://localhost:8888',
-      'http://[::1]:8080',     'http://[::1]:8888',
-    ],
-    ResultBlacklist:[ 'https://www.sjmed.com' ],
-    ResultWhitelist:[],
-  }
-
 
 
 
@@ -1206,8 +1194,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** internal Symbols ****/
 
-  const $normalizedName = Symbol('normalizedName')
-  const $L10nDictionary = Symbol('L10nDictionary')
+  const $normalizedName = /*@__PURE__*/ Symbol('normalizedName')
+  const $L10nDictionary = /*@__PURE__*/ Symbol('L10nDictionary')
 
 //----------------------------------------------------------------------------//
 //                        UI-specific Type Definitions                        //
@@ -1316,7 +1304,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Location ****/
 
   export const [ allowLocation,allowedLocation, expectLocation,expectedLocation ] =
-    ValidatorQuadrupleFor(ValueIsLocation,'JCL coordinate')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsLocation,'JCL coordinate')
 
 /**** ValueIsDimension ****/
 
@@ -1327,7 +1315,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Dimension ****/
 
   export const [ allowDimension,allowedDimension, expectDimension,expectedDimension ] =
-    ValidatorQuadrupleFor(ValueIsDimension,'JCL dimension')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsDimension,'JCL dimension')
 
 /**** ValueIsPosition ****/
 
@@ -1340,7 +1328,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Position ****/
 
   export const [ allowPosition,allowedPosition, expectPosition,expectedPosition ] =
-    ValidatorQuadrupleFor(ValueIsPosition,'JCL position')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsPosition,'JCL position')
 
 /**** ValueIsSize ****/
 
@@ -1353,7 +1341,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Size ****/
 
   export const [ allowSize,allowedSize, expectSize,expectedSize ] =
-    ValidatorQuadrupleFor(ValueIsSize,'JCL size')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsSize,'JCL size')
 
 /**** ValueIsGeometry ****/
 
@@ -1367,7 +1355,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Geometry ****/
 
   export const [ allowGeometry,allowedGeometry, expectGeometry,expectedGeometry ] =
-    ValidatorQuadrupleFor(ValueIsGeometry,'JCL geometry')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsGeometry,'JCL geometry')
 
 /**** ValueIsVNode (just an alias for my personal convenience) ****/
 
@@ -1382,7 +1370,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]PreactRef ****/
 
   export const [ allowPreactRef,allowedPreactRef, expectPreactRef,expectedPreactRef ] =
-    ValidatorQuadrupleFor(ValueIsPreactRef,'preact component reference')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsPreactRef,'preact component reference')
 
 /**** RegExpForPattern ****/
 
@@ -1691,50 +1679,43 @@ debugger               // not to be removed (helps debugging within the browser)
 //--                              Swatch Support                              --
 //------------------------------------------------------------------------------
 
-  const _ColorFieldSchema  = z.string().refine(ValueIsCSSColor,  'invalid CSS color')
-  const _LengthFieldSchema = z.string().refine(ValueIsCSSLength, 'invalid CSS length')
+// a "Swatch" is a plain object with (all optional) CSS custom properties:
+// colors, a border radius and font families - two of them (for the themes
+// 'light' and 'dark') form a "SwatchSet"
 
-  export const JCL_SwatchSchema = z.object({
-    '--jcl-bg-color':            _ColorFieldSchema,
-    '--jcl-fg-color':            _ColorFieldSchema,
-    '--jcl-primary-bg-color':    _ColorFieldSchema,
-    '--jcl-primary-fg-color':    _ColorFieldSchema,
-    '--jcl-secondary-bg-color':  _ColorFieldSchema,
-    '--jcl-secondary-fg-color':  _ColorFieldSchema,
-    '--jcl-muted-bg-color':      _ColorFieldSchema,
-    '--jcl-muted-fg-color':      _ColorFieldSchema,
-    '--jcl-destructive-bg-color':_ColorFieldSchema,
-    '--jcl-destructive-fg-color':_ColorFieldSchema,
-    '--jcl-accent-bg-color':     _ColorFieldSchema,
-    '--jcl-accent-fg-color':     _ColorFieldSchema,
-    '--jcl-success-bg-color':    _ColorFieldSchema,
-    '--jcl-success-fg-color':    _ColorFieldSchema,
-    '--jcl-warning-bg-color':    _ColorFieldSchema,
-    '--jcl-warning-fg-color':    _ColorFieldSchema,
-    '--jcl-border-color':        _ColorFieldSchema,
-    '--jcl-input-border-color':  _ColorFieldSchema, // border for outline-only
-                                                     // controls (Checkbox,
-                                                     // Radiobutton, Switch);
-                                                     // falls back to
-                                                     // "--jcl-border-color"
-    '--jcl-ring-color':          _ColorFieldSchema,
-    '--jcl-border-radius':       _LengthFieldSchema,
-    '--jcl-font':                z.string(),
-    '--jcl-serif-font':          z.string(),
-    '--jcl-sans-serif-font':     z.string(),
-    '--jcl-monospace-font':      z.string(),
-  }).partial()
+  const _SwatchColorKeys = [
+    '--jcl-bg-color',            '--jcl-fg-color',
+    '--jcl-primary-bg-color',    '--jcl-primary-fg-color',
+    '--jcl-secondary-bg-color',  '--jcl-secondary-fg-color',
+    '--jcl-muted-bg-color',      '--jcl-muted-fg-color',
+    '--jcl-destructive-bg-color','--jcl-destructive-fg-color',
+    '--jcl-accent-bg-color',     '--jcl-accent-fg-color',
+    '--jcl-success-bg-color',    '--jcl-success-fg-color',
+    '--jcl-warning-bg-color',    '--jcl-warning-fg-color',
+    '--jcl-border-color',
+    '--jcl-input-border-color',     // border for outline-only controls (Check-
+                                   // box, Radiobutton, Switch); falls back to
+                                   // "--jcl-border-color"
+    '--jcl-ring-color',
+  ] as const
 
-  export type  JCL_SwatchKey  = keyof typeof JCL_SwatchSchema.shape
-  export const JCL_SwatchKeys = Object.keys(JCL_SwatchSchema.shape) as JCL_SwatchKey[]
+  const _SwatchLengthKeys = [ '--jcl-border-radius' ] as const
 
-  export const JCL_SwatchSetSchema = z.object({
-    light:JCL_SwatchSchema,
-    dark:JCL_SwatchSchema
-  })
+  const _SwatchFontKeys = [
+    '--jcl-font', '--jcl-serif-font', '--jcl-sans-serif-font',
+    '--jcl-monospace-font',
+  ] as const
 
-  export type JCL_Swatch    = z.infer<typeof JCL_SwatchSchema>
-  export type JCL_SwatchSet = z.infer<typeof JCL_SwatchSetSchema>
+  export type JCL_SwatchKey = (
+    typeof _SwatchColorKeys[number] | typeof _SwatchLengthKeys[number] |
+    typeof _SwatchFontKeys[number]
+  )
+  export const JCL_SwatchKeys:JCL_SwatchKey[] = [
+    ..._SwatchColorKeys, ..._SwatchLengthKeys, ..._SwatchFontKeys
+  ]
+
+  export type JCL_Swatch    = { [Key in JCL_SwatchKey]?:string }
+  export type JCL_SwatchSet = { light:JCL_Swatch, dark:JCL_Swatch }
 
 /**** CSS validators — gracefully skip when CSS global is absent (SSR) ****/
 
@@ -1752,17 +1733,35 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** ValueIsSwatch ****/
 
-  export const ValueIsSwatch = ClassifierFor(JCL_SwatchSchema)
+// unknown properties are tolerated, known ones (when present) are validated
+
+  export function ValueIsSwatch (Value:any):boolean {
+    if (! ValueIsPlainObject(Value)) { return false }
+
+    const isOptionally = (Key:string, isValid:(Value:any) => boolean) => (
+      (Value[Key] === undefined) || isValid(Value[Key])
+    )
+    return (
+      _SwatchColorKeys.every ((Key) => isOptionally(Key,ValueIsCSSColor)) &&
+      _SwatchLengthKeys.every((Key) => isOptionally(Key,ValueIsCSSLength)) &&
+      _SwatchFontKeys.every  ((Key) => isOptionally(Key,ValueIsString))
+    )
+  }
 
   export const [ allowSwatch,allowedSwatch, expectSwatch,expectedSwatch ] =
-    ValidatorQuadrupleFor(ValueIsSwatch,'JCL swatch')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsSwatch,'JCL swatch')
 
 /**** ValueIsSwatchSet ****/
 
-  export const ValueIsSwatchSet = ClassifierFor(JCL_SwatchSetSchema)
+  export function ValueIsSwatchSet (Value:any):boolean {
+    return (
+      ValueIsPlainObject(Value) &&
+      ValueIsSwatch(Value.light) && ValueIsSwatch(Value.dark)
+    )
+  }
 
   export const [ allowSwatchSet,allowedSwatchSet, expectSwatchSet,expectedSwatchSet ] =
-    ValidatorQuadrupleFor(ValueIsSwatchSet,'set of JCL swatches')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsSwatchSet,'set of JCL swatches')
 
 /**** activeSwatchStyle ****/
 
@@ -1808,7 +1807,7 @@ debugger               // not to be removed (helps debugging within the browser)
 /**** allow/expect[ed]Locale ****/
 
   export const [ allowLocale,allowedLocale, expectLocale,expectedLocale ] =
-    ValidatorQuadrupleFor(ValueIsLocale,'supported locale')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsLocale,'supported locale')
 /**** Locales that (are supported but) default to RTL ****/
 
   const _RTL_Locales:ReadonlySet<string> = new Set([
@@ -1967,19 +1966,34 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** ValueIsDictionary ****/
 
-  const nonEmptyTextline = z.string().min(1)
-    .regex(/^[^\x00-\x1F\x7F\x80-\x9F]+$/)
-  const StringRecord = z.record(nonEmptyTextline, z.union([
-    nonEmptyTextline,                                       // plain entry
-    z.record(nonEmptyTextline,nonEmptyTextline)             // plural categories
-  ]))
+// a dictionary maps non-empty textlines onto either non-empty textlines
+// (plain entries) or records of them (plural categories)
 
-  const ValueIsDictionary = ClassifierFor(StringRecord)
+  const _DictionaryTextlinePattern = /^[^\x00-\x1F\x7F\x80-\x9F]+$/
+
+  function ValueIsDictionaryTextline (Value:any):boolean {
+    return ValueIsString(Value) && _DictionaryTextlinePattern.test(Value)
+  }
+
+  function ValueIsDictionary (Value:any):boolean {
+    if (! ValueIsPlainObject(Value)) { return false }
+
+    return Object.entries(Value).every(([ Key,Entry ]) => (
+      ValueIsDictionaryTextline(Key) && (
+        ValueIsDictionaryTextline(Entry) || (
+          ValueIsPlainObject(Entry) &&
+          Object.entries(Entry as Indexable).every(([ Category,Text ]) => (
+            ValueIsDictionaryTextline(Category) && ValueIsDictionaryTextline(Text)
+          ))
+        )
+      )
+    ))
+  }
 
 /**** allow/expect[ed]Dictionary ****/
 
   export const [ allowDictionary,allowedDictionary, expectDictionary,expectedDictionary ] =
-    ValidatorQuadrupleFor(ValueIsDictionary,'localization dictionary')
+    /*@__PURE__*/ ValidatorQuadrupleFor(ValueIsDictionary,'localization dictionary')
 /**** _extensibleL10nDictionary ****/
 
   function _extensibleL10nDictionary (Base:JCL_L10nDictionary):JCL_L10nDictionary {
@@ -2157,25 +2171,33 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** DefaultCustomization ****/
 
-  const _DefaultLocale:JCL_Locale = _supportedLocaleFor(
-    (typeof navigator !== 'undefined') ? navigator.language : 'en'
-  )
+// built by a "pure"-annotated function so that unused builds get shaken away
+// - the media queries and the locale lookup only run when the constant is
+// actually used
 
-  const DefaultCustomization:JCL_Customization = {
-    Theme:            'auto',                   // which means: "use OS setting"
-    SwatchSet:        structuredClone(DefaultSwatchSet),
-    PointerAccuracy:  MediaQueryMatches('(pointer: coarse)') ? 'coarse' : 'fine',
-    HoverCapability:  MediaQueryMatches('(hover: none)') ? 'none' : 'hover',
-    preferredMotion:  MediaQueryMatches('(prefers-reduced-motion: reduce)') ? 'reduced' : undefined,
-    preferredContrast:(
-      MediaQueryMatches('(prefers-contrast: more)') ? 'more' :
-      MediaQueryMatches('(prefers-contrast: less)') ? 'less' : undefined
-    ),
-    Locale:           _DefaultLocale,
-    Direction:        DirectionOfLocale(_DefaultLocale),
-    TooltipDelay:     600,
-    [$L10nDictionary]:_globalL10nDictionary,
+  function _builtDefaultCustomization ():JCL_Customization {
+    const _DefaultLocale:JCL_Locale = _supportedLocaleFor(
+      (typeof navigator !== 'undefined') ? navigator.language : 'en'
+    )
+
+    return {
+      Theme:            'auto',                 // which means: "use OS setting"
+      SwatchSet:        structuredClone(DefaultSwatchSet),
+      PointerAccuracy:  MediaQueryMatches('(pointer: coarse)') ? 'coarse' : 'fine',
+      HoverCapability:  MediaQueryMatches('(hover: none)') ? 'none' : 'hover',
+      preferredMotion:  MediaQueryMatches('(prefers-reduced-motion: reduce)') ? 'reduced' : undefined,
+      preferredContrast:(
+        MediaQueryMatches('(prefers-contrast: more)') ? 'more' :
+        MediaQueryMatches('(prefers-contrast: less)') ? 'less' : undefined
+      ),
+      Locale:           _DefaultLocale,
+      Direction:        DirectionOfLocale(_DefaultLocale),
+      TooltipDelay:     600,
+      [$L10nDictionary]:_globalL10nDictionary,
+    }
   }
+
+  const DefaultCustomization:JCL_Customization = /*@__PURE__*/ _builtDefaultCustomization()
 /**** Customization Context - undefined outside any provider ****/
 
   export interface JCL_CustomizationContext extends JCL_Customization {
@@ -2191,7 +2213,7 @@ debugger               // not to be removed (helps debugging within the browser)
     registerL10n:        (Locale:JCL_Locale, Dictionary:JCL_Dictionary) => void
   }
 
-  const CustomizationContext = createContext<JCL_CustomizationContext|undefined>(undefined)
+  const CustomizationContext = /*@__PURE__*/ createContext<JCL_CustomizationContext|undefined>(undefined)
 
 /**** builds a customization context from a given value ****/
 
@@ -3833,7 +3855,7 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** JCL_PointerDnDContext ****/
 
-  export const JCL_PointerDnDContext = createContext<JCL_PointerDnDContextValue>({
+  export const JCL_PointerDnDContext = /*@__PURE__*/ createContext<JCL_PointerDnDContextValue>({
     registerDropTarget:_registerDropTarget,
     closestDropTarget: _closestDropTarget,
   })
@@ -4158,9 +4180,35 @@ debugger               // not to be removed (helps debugging within the browser)
 
   const StylesheetSet:Indexable = Object.create(null)
 
+/**** StylesheetInstallerFor - defers stylesheet installation until needed ****/
+
+// returns a function which installs the given stylesheet upon its first
+// invocation only - meant to be called while rendering, keeping the module
+// itself free of side effects at load time (and, thus, tree-shakeable)
+
+  export function StylesheetInstallerFor (
+    Name:JCL_Name, Stylesheet:JCL_Text
+  ):() => void {
+    let isInstalled = false
+    return () => {
+      if (! isInstalled) {
+        isInstalled = true
+        installStylesheetFor(Name,Stylesheet)
+      }
+    }
+  }
+
 /**** install stylesheet for JCL itself ****/
 
+// deferred until the first component rendering (s. "safelyRendered") in
+// order to keep this module free of side effects at load time
+
+  let _JCLStylesheetInstalled = false
+
   function installJCLStylesheet ():void {
+    if (_JCLStylesheetInstalled || (typeof document === 'undefined')) { return }
+    _JCLStylesheetInstalled = true
+
     let StyleElement = document.getElementById('JCL-Stylesheet')
     if (StyleElement == null) {
       StyleElement = document.createElement('style')
@@ -4362,8 +4410,6 @@ debugger               // not to be removed (helps debugging within the browser)
     })
   }
 
-  if (typeof document !== 'undefined') { installJCLStylesheet() }
-
 /**** installStylesheetFor ****/
 
   export function installStylesheetFor (
@@ -4420,6 +4466,8 @@ debugger               // not to be removed (helps debugging within the browser)
 
   export function JCL_ErrorIndicator (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureErrorIndicatorStyles()
+
       PropSet = parseablePropSet(PropSet)
         let ErrorToShow   = acceptableValue(PropSet.Error,
           (Value:any) => (Value instanceof Error) || ValueIsText(Value)
@@ -4454,7 +4502,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-error-indicator',`
+  const ensureErrorIndicatorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-error-indicator',`
     .jcl-error-indicator {
       display:inline-block; position:relative;
       width:24px; height:24px;
@@ -4493,7 +4541,19 @@ console.warn(ErrorToShow)
 
 /**** safelyRendered ****/
 
+// upon its very first invocation, JCL's global initialisation is performed
+// as well - this keeps the module free of side effects at load time while
+// still setting everything up as soon as the first component is rendered
+
+  let _JCLwasInitialized = false
+
   export function safelyRendered (Renderer:Function):any {
+    if (! _JCLwasInitialized) {
+      _JCLwasInitialized = true
+      installJCLStylesheet()
+      _trackUnhandledRejections()
+    }
+
     expectFunction('rendering function',Renderer)
 
     const [ Error,resetError ] = useErrorBoundary()
@@ -4758,16 +4818,26 @@ console.warn(ErrorToShow)
 
 /**** built-in labels (shared with dialogs - see "JCL_DialogView") ****/
 
-  const _CloseTranslations:Indexable = {
-    en:'Close',  de:'Schließen', fr:'Fermer',
-    es:'Cerrar', it:'Chiudi',    pt:'Fechar'
-  }
-  Object.keys(_CloseTranslations).forEach((Locale:string) => {
-    _extendL10nDictionary(Locale, {
-      'jcl.overlay.close':_CloseTranslations[Locale],
-      'jcl.dialog.close': _CloseTranslations[Locale],
+// registered lazily upon the first base rendering in order to keep this
+// module free of side effects at load time
+
+  let _CloseTranslationsRegistered = false
+
+  function _ensureCloseTranslations ():void {
+    if (_CloseTranslationsRegistered) { return }
+    _CloseTranslationsRegistered = true
+
+    const _CloseTranslations:Indexable = {
+      en:'Close',  de:'Schließen', fr:'Fermer',
+      es:'Cerrar', it:'Chiudi',    pt:'Fechar'
+    }
+    Object.keys(_CloseTranslations).forEach((Locale:string) => {
+      _extendL10nDictionary(Locale, {
+        'jcl.overlay.close':_CloseTranslations[Locale],
+        'jcl.dialog.close': _CloseTranslations[Locale],
+      })
     })
-  })
+  }
 
 /**** OverlayBase ****/
 
@@ -4776,6 +4846,8 @@ console.warn(ErrorToShow)
 
   export function OverlayBase (PropSet:Indexable):any {
     return safelyRendered(() => {
+      _ensureCloseTranslations()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const APIRef  = acceptableValue   (PropSet.APIRef, ValueIsPreactRef)
@@ -5164,7 +5236,7 @@ console.warn(ErrorToShow)
   const missingOverlayAction:JCL_OverlayAction =
     missingBaseActionFor('OverlayContext')          // see "shared Base Helpers"
 
-  export const JCL_OverlayContext = createContext<JCL_OverlayContextValue>({
+  export const JCL_OverlayContext = /*@__PURE__*/ createContext<JCL_OverlayContextValue>({
     openOverlay:         missingOverlayAction,
     openOverlayAtPointer:missingOverlayAction,
     closeOverlay:        missingOverlayAction,
@@ -5202,6 +5274,8 @@ console.warn(ErrorToShow)
 
   export function DialogBase (PropSet:Indexable):any {
     return safelyRendered(() => {
+      _ensureCloseTranslations()            // s. "OverlayBase" for this helper
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const APIRef  = acceptableValue   (PropSet.APIRef, ValueIsPreactRef)
@@ -5688,7 +5762,7 @@ console.warn(ErrorToShow)
   const missingDialogAction:JCL_DialogAction =
     missingBaseActionFor('DialogContext')           // see "shared Base Helpers"
 
-  export const JCL_DialogContext = createContext<JCL_DialogContextValue>({
+  export const JCL_DialogContext = /*@__PURE__*/ createContext<JCL_DialogContextValue>({
     openDialog:        missingDialogAction,
     closeDialog:       missingDialogAction,
     closeAllDialogs:   missingDialogAction,
@@ -5727,6 +5801,8 @@ console.warn(ErrorToShow)
 
   export function ToastBase (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureToastBaseStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes   = acceptableTextline(PropSet.Class) ?? ''
         const APIRef    = acceptableValue   (PropSet.APIRef, ValueIsPreactRef)
@@ -5798,7 +5874,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.toast-base',`
+  const ensureToastBaseStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.toast-base',`
     .jcl-component.toast-base {
       display:contents;
     }
@@ -5850,10 +5926,12 @@ console.warn(ErrorToShow)
 // and provides an item context through which concrete toast contents (like
 // "styledToast") may close their own toast
 
-  const JCL_ToastItemContext = createContext<any>(undefined)
+  const JCL_ToastItemContext = /*@__PURE__*/ createContext<any>(undefined)
 
   function JCL_ToastView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureToastViewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Toast = acceptableValue(PropSet.Toast, ValueIsPlainObject) ?? missingProperty('Toast')
 
@@ -5914,7 +5992,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-toast-view',`
+  const ensureToastViewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-toast-view',`
     @keyframes jcl-toast-in {
       from { opacity:0; transform:translateY(8px) }
       to   { opacity:1; transform:none }
@@ -5960,7 +6038,7 @@ console.warn(ErrorToShow)
   const missingToastAction:JCL_ToastAction =
     missingBaseActionFor('ToastContext')            // see "shared Base Helpers"
 
-  export const JCL_ToastContext = createContext<JCL_ToastContextValue>({
+  export const JCL_ToastContext = /*@__PURE__*/ createContext<JCL_ToastContextValue>({
     showToast:     missingToastAction,
     closeToast:    missingToastAction,
     closeAllToasts:missingToastAction,
@@ -5979,10 +6057,11 @@ console.warn(ErrorToShow)
 /**** fullsized ****/
 
   export function fullsized (PropSet:Indexable):any {
+    ensureFullsizedStyles()
     return renderedPlainLayout('fullsized',PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.fullsized',`
+  const ensureFullsizedStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.fullsized',`
     .jcl-component.fullsized {
       flex:1 0 auto;
       left:0px; top:0px; right:auto; bottom:auto; width:100%; height:100%;
@@ -5997,10 +6076,11 @@ console.warn(ErrorToShow)
 //----------------------------------------------------------------------------//
 
   export function centered (PropSet:Indexable):any {
+    ensureCenteredStyles()
     return renderedPlainLayout('centered',PropSet)            // see "fullsized"
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.centered',`
+  const ensureCenteredStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.centered',`
     .jcl-component.centered {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:center !important; justify-content:center !important;
@@ -6016,10 +6096,11 @@ console.warn(ErrorToShow)
 //----------------------------------------------------------------------------//
 
   export function horizontal (PropSet:Indexable):any {
+    ensureHorizontalStyles()
     return renderedFlowLayout('horizontal',PropSet)           // see "fullsized"
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.horizontal',`
+  const ensureHorizontalStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.horizontal',`
     .jcl-component.horizontal {
       display:flex !important; flex-flow:row nowrap !important;
         align-items:center;
@@ -6033,10 +6114,11 @@ console.warn(ErrorToShow)
 //----------------------------------------------------------------------------//
 
   export function vertical (PropSet:Indexable):any {
+    ensureVerticalStyles()
     return renderedFlowLayout('vertical',PropSet)             // see "fullsized"
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.vertical',`
+  const ensureVerticalStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.vertical',`
     .jcl-component.vertical {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:start;
@@ -6051,6 +6133,8 @@ console.warn(ErrorToShow)
 
   export function tabular (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureTabularStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes    = acceptableTextline(PropSet.Class)   ?? ''
         const Style      = acceptableText    (PropSet.Style)   ?? ''
@@ -6113,7 +6197,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.tabular',`
+  const ensureTabularStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.tabular',`
     .jcl-component.tabular {
       display:table !important;
       border:none; border-collapse:separate; border-spacing:0px;
@@ -6135,6 +6219,8 @@ console.warn(ErrorToShow)
 
   export function selective (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureSelectiveStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes     = acceptableTextline(PropSet.Class)       ?? ''
         let   activeIndex = acceptableOrdinal (PropSet.activeIndex) ?? 0
@@ -6154,7 +6240,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.selective',`
+  const ensureSelectiveStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.selective',`
     .jcl-component.selective {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:stretch !important; justify-content:stretch !important;
@@ -6170,6 +6256,8 @@ console.warn(ErrorToShow)
 
   export function stacked (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStackedStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
       const ContentList = PropSet.children
@@ -6180,7 +6268,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.stacked',`
+  const ensureStackedStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.stacked',`
     .jcl-component.stacked > *:first-child {
       position:relative;
       left:0px; top:0px; right:auto; bottom:auto; width:auto; height:auto;
@@ -6225,6 +6313,8 @@ console.warn(ErrorToShow)
 
   export function Dummy (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureDummyStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes        = acceptableTextline(PropSet.Class) ?? ''
         const Value          = acceptableText    (PropSet.Value) ?? ''
@@ -6238,7 +6328,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.dummy',`
+  const ensureDummyStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.dummy',`
     .jcl-component.dummy.visible-pattern {
       background-image:repeating-linear-gradient(-45deg,
         rgba(222,222,222, 1) 0px, rgba(222,222,222, 1) 4px,
@@ -6253,6 +6343,8 @@ console.warn(ErrorToShow)
 
   export function Spacer (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureExpandingSpacerStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style) ?? ''
@@ -6275,6 +6367,8 @@ console.warn(ErrorToShow)
 
   export function expandingSpacer (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureExpandingSpacerStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style) ?? ''
@@ -6291,7 +6385,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.expanding-spacer',`
+  const ensureExpandingSpacerStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.expanding-spacer',`
     .jcl-component.expanding-spacer {
       flex:1 0 auto !important;
     }
@@ -6302,6 +6396,9 @@ console.warn(ErrorToShow)
 
   export function horizontalSeparator (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureHorizontalSeparatorStyles()
+      ensureVerticalSeparatorStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
 
@@ -6310,7 +6407,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.horizontal-separator',`
+  const ensureHorizontalSeparatorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.horizontal-separator',`
     .jcl-component.horizontal-separator {
       position:relative;
       flex:1 0 auto;
@@ -6333,6 +6430,9 @@ console.warn(ErrorToShow)
 
   export function verticalSeparator (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureHorizontalSeparatorStyles()
+      ensureVerticalSeparatorStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
 
@@ -6341,7 +6441,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.vertical-separator',`
+  const ensureVerticalSeparatorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.vertical-separator',`
     .jcl-component.vertical-separator {
       position:relative;
       flex:1 0 auto;
@@ -6366,6 +6466,11 @@ console.warn(ErrorToShow)
 
   function plainTextlineView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureTitleStyles()
+      ensureSubtitleStyles()
+      ensureLabelStyles()
+      ensureTextlineviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes   = acceptableTextline(PropSet.Class) ?? ''
         const Value     = acceptableTextline(PropSet.Value)
@@ -6388,7 +6493,7 @@ console.warn(ErrorToShow)
     return plainTextlineView(PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.title',`
+  const ensureTitleStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.title',`
     .jcl-component.title {
       font-size:22px; font-weight:bold; line-height:32px;
       overflow:hidden; text-overflow:ellipsis;
@@ -6406,7 +6511,7 @@ console.warn(ErrorToShow)
     return plainTextlineView(PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.subtitle',`
+  const ensureSubtitleStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.subtitle',`
     .jcl-component.subtitle {
       font-size:18px; font-weight:bold; line-height:27px;
       overflow:hidden; text-overflow:ellipsis;
@@ -6420,7 +6525,7 @@ console.warn(ErrorToShow)
     return plainTextlineView(PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.label',`
+  const ensureLabelStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.label',`
     .jcl-component.label {
       height:30px;
       font-size:14px; font-weight:bold; line-height:30px;
@@ -6435,7 +6540,7 @@ console.warn(ErrorToShow)
     return plainTextlineView(PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.textlineview',`
+  const ensureTextlineviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.textlineview',`
     .jcl-component.textlineview {
       height:30px;
       font-size:14px; line-height:30px;
@@ -6451,6 +6556,9 @@ console.warn(ErrorToShow)
 
   function plainTextView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureDescriptionStyles()
+      ensureFineprintStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -6468,7 +6576,7 @@ console.warn(ErrorToShow)
     return plainTextView(PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.description',`
+  const ensureDescriptionStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.description',`
     .jcl-component.description {
       font-size:14px; font-weight:normal; line-height:21px;
       overflow:hidden; text-overflow:ellipsis;
@@ -6482,7 +6590,7 @@ console.warn(ErrorToShow)
     return plainTextView(PropSet)
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.fineprint',`
+  const ensureFineprintStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.fineprint',`
     .jcl-component.fineprint {
       font-size:12px; font-weight:normal; line-height:18px;
       overflow:hidden; text-overflow:ellipsis;
@@ -6495,6 +6603,8 @@ console.warn(ErrorToShow)
 
   export function TextView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureTextviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Value        = acceptableText    (PropSet.Value)
@@ -6506,7 +6616,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.textview',`
+  const ensureTextviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.textview',`
     .jcl-component.textview {
       overflow:auto; overscroll-behavior:contain;
       font-size:14px; font-weight:normal; line-height:21px;
@@ -6524,6 +6634,8 @@ console.warn(ErrorToShow)
 
   export function HTMLView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureHtmlviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value) ?? ''
@@ -6534,7 +6646,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.htmlview',`
+  const ensureHtmlviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.htmlview',`
     .jcl-component.htmlview {
       overflow:auto; overscroll-behavior:contain;
       font-size:14px; font-weight:normal; line-height:21px;
@@ -6613,6 +6725,8 @@ console.warn(ErrorToShow)
 
   export function MarkdownView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureMarkdownviewStyles()
+
       const LibrariesAreReady = useLibraries(loadMarkdownLibraries)
 
       PropSet = parseablePropSet(PropSet)
@@ -6632,7 +6746,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.markdownview',`
+  const ensureMarkdownviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.markdownview',`
     .jcl-component.markdownview {
       overflow:auto; overscroll-behavior:contain;
       font-size:14px; font-weight:normal; line-height:21px;
@@ -6736,6 +6850,8 @@ console.warn(ErrorToShow)
 
   export function ImageView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureImageviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes         = acceptableTextline(PropSet.Class) ?? ''
         const Style           = acceptableText    (PropSet.Style) ?? ''
@@ -6765,7 +6881,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.imageview',`
+  const ensureImageviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.imageview',`
     div.jcl-component.imageview {
       display:flex; align-items:center; justify-content:center;
     }
@@ -6780,6 +6896,8 @@ console.warn(ErrorToShow)
 
   export function SVGView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureSvgviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes         = acceptableTextline(PropSet.Class) ?? ''
         const Style           = acceptableText    (PropSet.Style) ?? ''
@@ -6813,7 +6931,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.svgview',`
+  const ensureSvgviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.svgview',`
     .jcl-component.svgview {
       object-fit:contain; object-position:center;
     }
@@ -6837,6 +6955,8 @@ console.warn(ErrorToShow)
 
   export function WebView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureWebviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes           = acceptableTextline(PropSet.Class) ?? ''
         const Value             = acceptableURL     (PropSet.Value)
@@ -6860,7 +6980,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.webview',`
+  const ensureWebviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.webview',`
     .jcl-component.webview {
       overflow:auto;
     }
@@ -6901,6 +7021,8 @@ console.warn(ErrorToShow)
 
   export function Icon (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureIconStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Style    = acceptableText    (PropSet.Style)
@@ -6935,7 +7057,7 @@ console.warn(ErrorToShow)
 
 // the "active" and focus styles are shared with "FAIcon"
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.icon',`
+  const ensureIconStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.icon',`
     .jcl-component.icon {
       width:24px !important; height:24px !important;
     }
@@ -7158,6 +7280,8 @@ console.warn(ErrorToShow)
 
   export function FAIcon (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureFaIconStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Style    = acceptableText    (PropSet.Style)
@@ -7187,7 +7311,7 @@ console.warn(ErrorToShow)
 
 // the "active" and focus styles are shared with "Icon" (s. there)
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.fa-icon',`
+  const ensureFaIconStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.fa-icon',`
     .jcl-component.fa-icon {
       width:24px !important; height:24px !important;
       font-size:18px; line-height:24px; text-align:center;
@@ -7198,6 +7322,8 @@ console.warn(ErrorToShow)
 
   export function nativeButton (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeButtonStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -7215,7 +7341,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-button',`
+  const ensureNativeButtonStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-button',`
     .jcl-component.native-button {
       height:30px;
       border:solid 1px black; border-radius:4px;
@@ -7232,6 +7358,8 @@ console.warn(ErrorToShow)
 
   export function nativeCheckbox (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeCheckboxStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -7269,7 +7397,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-checkbox',`
+  const ensureNativeCheckboxStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-checkbox',`
     .jcl-component.native-checkbox {
       height:30px;
       min-width:20px; min-height:20px;
@@ -7289,6 +7417,8 @@ console.warn(ErrorToShow)
 
   export function nativeRadiobutton (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeRadiobuttonStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -7322,7 +7452,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-radiobutton',`
+  const ensureNativeRadiobuttonStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-radiobutton',`
     .jcl-component.native-radiobutton {
       height:30px;
       min-width:20px; min-height:20px;
@@ -7342,6 +7472,8 @@ console.warn(ErrorToShow)
 
   export function nativeGauge (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeGaugeStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes    = acceptableTextline(PropSet.Class) ?? ''
         const Style      = acceptableText    (PropSet.Style)
@@ -7361,7 +7493,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-gauge',`
+  const ensureNativeGaugeStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-gauge',`
     .jcl-component.native-gauge {
       height:30px;
       min-width:40px; min-height:20px;
@@ -7378,6 +7510,8 @@ console.warn(ErrorToShow)
 
   export function nativeProgressbar (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeProgressbarStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -7390,7 +7524,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-progressbar',`
+  const ensureNativeProgressbarStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-progressbar',`
     .jcl-component.native-progressbar {
       height:30px;
       min-width:40px; min-height:20px;
@@ -7416,6 +7550,8 @@ console.warn(ErrorToShow)
 
   export function nativeSlider (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeSliderStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -7465,7 +7601,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-slider',`
+  const ensureNativeSliderStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-slider',`
     .jcl-component.native-slider {
       height:30px;
       min-width:40px; min-height:20px;
@@ -7509,6 +7645,8 @@ console.warn(ErrorToShow)
 
     return function InputComponent (PropSet:Indexable):any {
       return safelyRendered(() => {
+        (Styled ? ensureStyledInputStyles : ensureNativeInputStyles)()
+
         PropSet = parseablePropSet(PropSet)
           const Classes       = acceptableTextline(PropSet.Class) ?? ''
           const Value         = acceptableValue   (PropSet.Value, (Value:any) => ValueIsValid(Value) || ValueIsSpecial(Value))
@@ -7583,6 +7721,8 @@ console.warn(ErrorToShow)
 
     return function InputComponent (PropSet:Indexable):any {
       return safelyRendered(() => {
+        (Styled ? ensureStyledInputStyles : ensureNativeInputStyles)()
+
         PropSet = parseablePropSet(PropSet)
           const Classes      = acceptableTextline(PropSet.Class) ?? ''
           const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsValid(Value) || ValueIsSpecial(Value))
@@ -7632,7 +7772,7 @@ console.warn(ErrorToShow)
 
 /**** common styling for all "native" input components ****/
 
-  installStylesheetFor('jcl-component.native-textual-input',`
+  const ensureNativeInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-textual-input',`
     .jcl-component.native-textual-input,
     .jcl-component.native-temporal-input {
       height:30px;
@@ -7661,7 +7801,7 @@ console.warn(ErrorToShow)
 
 /**** nativeTextlineInput ****/
 
-  export const nativeTextlineInput = textualInputComponentFor({
+  export const nativeTextlineInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'nativeTextlineInput', InputType:'text',
     ClassName:'native-textline-input', ValueIsValid:ValueIsTextline,
     withSpellChecking:true
@@ -7669,7 +7809,7 @@ console.warn(ErrorToShow)
 
 /**** nativePasswordInput ****/
 
-  export const nativePasswordInput = textualInputComponentFor({
+  export const nativePasswordInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'nativePasswordInput', InputType:'password',
     ClassName:'native-password-input', ValueIsValid:ValueIsTextline,
     withSuggestions:false
@@ -7682,6 +7822,8 @@ console.warn(ErrorToShow)
 
   export function nativeNumberInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsNumber(Value) || ValueIsSpecial(Value))
@@ -7749,7 +7891,7 @@ console.warn(ErrorToShow)
 
 /**** nativeEMailAddressInput ****/
 
-  export const nativeEMailAddressInput = textualInputComponentFor({
+  export const nativeEMailAddressInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'nativeEMailAddressInput', InputType:'email',
     ClassName:'native-emailaddress-input', ValueIsValid:ValueIsEMailAddress,
     withMultiple:true
@@ -7757,14 +7899,14 @@ console.warn(ErrorToShow)
 
 /**** nativePhoneNumberInput ****/
 
-  export const nativePhoneNumberInput = textualInputComponentFor({
+  export const nativePhoneNumberInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'nativePhoneNumberInput', InputType:'tel',
     ClassName:'native-phonenumber-input', ValueIsValid:ValueIsPhoneNumber
   })
 
 /**** nativeURLInput ****/
 
-  export const nativeURLInput = textualInputComponentFor({
+  export const nativeURLInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'nativeURLInput', InputType:'url',
     ClassName:'native-url-input', ValueIsValid:ValueIsURL
   })
@@ -7772,13 +7914,13 @@ console.warn(ErrorToShow)
 /**** nativeTimeInput ****/
 
   export const JCL_TimePattern = '([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?'
-  export const JCL_TimeRegExp  = RegExpForPattern(JCL_TimePattern)
+  export const JCL_TimeRegExp  = /*@__PURE__*/ RegExpForPattern(JCL_TimePattern)
 
   export function ValueIsTime (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_TimeRegExp)
   }
 
-  export const nativeTimeInput = temporalInputComponentFor({
+  export const nativeTimeInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'nativeTimeInput', InputType:'time',
     ClassName:'native-time-input', ValueIsValid:ValueIsTime
   })
@@ -7786,13 +7928,13 @@ console.warn(ErrorToShow)
 /**** nativeDateTimeInput ****/
 
   export const JCL_DateTimePattern = '\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?'
-  export const JCL_DateTimeRegExp  = RegExpForPattern(JCL_DateTimePattern)
+  export const JCL_DateTimeRegExp  = /*@__PURE__*/ RegExpForPattern(JCL_DateTimePattern)
 
   export function ValueIsDateTime (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_DateTimeRegExp)
   }
 
-  export const nativeDateTimeInput = temporalInputComponentFor({
+  export const nativeDateTimeInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'nativeDateTimeInput', InputType:'datetime-local',
     ClassName:'native-datetime-input', ValueIsValid:ValueIsDateTime
   })
@@ -7800,13 +7942,13 @@ console.warn(ErrorToShow)
 /**** nativeDateInput ****/
 
   export const JCL_DatePattern = '\\d{4}-\\d{2}-\\d{2}'
-  export const JCL_DateRegExp  = RegExpForPattern(JCL_DatePattern)
+  export const JCL_DateRegExp  = /*@__PURE__*/ RegExpForPattern(JCL_DatePattern)
 
   export function ValueIsDate (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_DateRegExp)
   }
 
-  export const nativeDateInput = temporalInputComponentFor({
+  export const nativeDateInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'nativeDateInput', InputType:'date',
     ClassName:'native-date-input', ValueIsValid:ValueIsDate,
     Pattern:JCL_DatePattern
@@ -7815,13 +7957,13 @@ console.warn(ErrorToShow)
 /**** nativeWeekInput ****/
 
   export const JCL_WeekPattern = '\\d{4}-W\\d{2}'
-  export const JCL_WeekRegExp  = RegExpForPattern(JCL_WeekPattern)
+  export const JCL_WeekRegExp  = /*@__PURE__*/ RegExpForPattern(JCL_WeekPattern)
 
   export function ValueIsWeek (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_WeekRegExp)
   }
 
-  export const nativeWeekInput = temporalInputComponentFor({
+  export const nativeWeekInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'nativeWeekInput', InputType:'week',
     ClassName:'native-week-input', ValueIsValid:ValueIsWeek,
     Pattern:JCL_WeekPattern
@@ -7830,13 +7972,13 @@ console.warn(ErrorToShow)
 /**** nativeMonthInput ****/
 
   export const JCL_MonthPattern = '\\d{4}-\\d{2}'
-  export const JCL_MonthRegExp  = RegExpForPattern(JCL_MonthPattern)
+  export const JCL_MonthRegExp  = /*@__PURE__*/ RegExpForPattern(JCL_MonthPattern)
 
   export function ValueIsMonth (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_MonthRegExp)
   }
 
-  export const nativeMonthInput = temporalInputComponentFor({
+  export const nativeMonthInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'nativeMonthInput', InputType:'month',
     ClassName:'native-month-input', ValueIsValid:ValueIsMonth,
     Pattern:JCL_MonthPattern
@@ -7844,7 +7986,7 @@ console.warn(ErrorToShow)
 
 /**** nativeSearchInput ****/
 
-  export const nativeSearchInput = textualInputComponentFor({
+  export const nativeSearchInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'nativeSearchInput', InputType:'search',
     ClassName:'native-search-input', ValueIsValid:ValueIsTextline,
     withSpellChecking:true
@@ -7854,6 +7996,8 @@ console.warn(ErrorToShow)
 
   export function nativeFileInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeFileInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -7903,7 +8047,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-file-input',`
+  const ensureNativeFileInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-file-input',`
     .jcl-component.native-file-input {
       display:inline-block;
       height:30px;
@@ -7931,6 +8075,8 @@ console.warn(ErrorToShow)
 
   export function nativeColorInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeColorInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -7974,7 +8120,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-color-input',`
+  const ensureNativeColorInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-color-input',`
     .jcl-component.native-color-input {
       height:30px;
         min-width:40px;
@@ -7997,6 +8143,8 @@ console.warn(ErrorToShow)
 
   export function nativeDropDown (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeDropdownStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
@@ -8054,7 +8202,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-dropdown',`
+  const ensureNativeDropdownStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-dropdown',`
     .jcl-component.native-dropdown {
       height:30px;
         min-width:30px;
@@ -8073,6 +8221,8 @@ console.warn(ErrorToShow)
 
   export function nativeTextInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNativeTextInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes       = acceptableTextline(PropSet.Class) ?? ''
         const Style         = acceptableText    (PropSet.Style)
@@ -8121,7 +8271,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.native-text-input',`
+  const ensureNativeTextInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.native-text-input',`
     .jcl-component.native-text-input {
       resize:none;
       border:solid 1px #888888; border-radius:2px;
@@ -8146,6 +8296,8 @@ console.warn(ErrorToShow)
 
   export function legacyPseudoFileInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureLegacyPseudoFileInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -8190,7 +8342,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.legacy-pseudo-file-input',`
+  const ensureLegacyPseudoFileInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.legacy-pseudo-file-input',`
     .jcl-component.legacy-pseudo-file-input {
       display:flex ! important; justify-content:center ! important;
         align-items:center ! important;
@@ -8212,6 +8364,8 @@ console.warn(ErrorToShow)
 
   export function legacyPseudoDropDown (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureLegacyPseudoDropdownStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -8278,7 +8432,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.legacy-pseudo-dropdown',`
+  const ensureLegacyPseudoDropdownStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.legacy-pseudo-dropdown',`
     .jcl-component.legacy-pseudo-dropdown {
       display:flex ! important; justify-content:center ! important;
         align-items:center ! important;
@@ -8310,6 +8464,8 @@ console.warn(ErrorToShow)
 
   export function legacyFileDropArea (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureLegacyFileDropAreaStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -8390,7 +8546,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  installStylesheetFor('jcl-component.legacy-file-drop-area',`
+  const ensureLegacyFileDropAreaStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.legacy-file-drop-area',`
     .jcl-component.legacy-file-drop-area {
       display:flex; flex-flow:column nowrap;
         justify-content:center; align-items:center;
@@ -8418,6 +8574,8 @@ console.warn(ErrorToShow)
 
   export function legacyTabStrip (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureTabstripStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes            = acceptableTextline(PropSet.Class) ?? ''
         let   activeIndex        = acceptableOrdinal (PropSet.activeIndex)
@@ -8479,7 +8637,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.tabstrip',`
+  const ensureTabstripStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.tabstrip',`
     .jcl-component.tabstrip {
       display:flex !important; flex-flow:row nowrap !important;
         align-items:center;
@@ -8520,6 +8678,8 @@ console.warn(ErrorToShow)
 
   export function legacyAccordionFold (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureAccordionFoldStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes           = acceptableTextline(PropSet.Class) ?? ''
         const Header            = acceptableTextline(PropSet.Header) ?? missingProperty('Header')
@@ -8583,7 +8743,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.accordion-fold',`
+  const ensureAccordionFoldStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.accordion-fold',`
     .jcl-component.accordion-fold {
       flex:1 0 auto;
       left:0px; top:0px; right:auto; bottom:auto; width:100%; height:auto;
@@ -8704,6 +8864,8 @@ console.warn(ErrorToShow)
 
   export function legacyFlatListView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureFlatlistviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes           = acceptableTextline(PropSet.Class) ?? ''
         let   List              = acceptableValue   (PropSet.List, (Value:any) => ValueIsListSatisfying(Value,ValueIsPlainObject)) ?? missingProperty('List')
@@ -9000,7 +9162,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.flatlistview',`
+  const ensureFlatlistviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.flatlistview',`
     .jcl-component.flatlistview {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:stretch !important;
@@ -9093,6 +9255,8 @@ console.warn(ErrorToShow)
 
   export function legacyNestedListView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNestedlistviewStyles()
+
       const emptyList = useRef([])              // makes it referentially stable
       const yeasayer  = useRef(() => true)                               // dto.
 
@@ -9594,7 +9758,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.nestedlistview',`
+  const ensureNestedlistviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.nestedlistview',`
     .jcl-component.nestedlistview {
       overflow-x:auto; overflow-y:scroll; overscroll-behavior-y:contain;
       border:solid 1px #888888; border-radius:2px;
@@ -10039,6 +10203,8 @@ console.warn(ErrorToShow)
 
   export function legacyRichTextEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureRichtexteditorStyles()
+
       const LibrariesAreReady = useLibraries(loadRichTextEditorLibraries)
 
       PropSet = parseablePropSet(PropSet)
@@ -10823,7 +10989,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.richtexteditor',`
+  const ensureRichtexteditorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.richtexteditor',`
     .jcl-component.richtexteditor {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:stretch !important;
@@ -10993,14 +11159,21 @@ console.warn(ErrorToShow)
     yaml:      [ '@codemirror/lang-yaml',      'yaml' ],
   }
 
-  Object.keys(_builtInLanguages).forEach((Language:string) => {
-    const [ Module,Factory,Options ] = _builtInLanguages[Language]
-    registerCodeEditorLanguage(Language, async () => (
-      (await loadedLibrary(Module))[Factory](
-        ...(Options == null ? [] : [ Options ])
-      )
-    ))
-  })
+  let _builtInLanguagesRegistered = false
+
+  function _ensureBuiltInLanguages ():void {
+    if (_builtInLanguagesRegistered) { return }
+    _builtInLanguagesRegistered = true
+
+    Object.keys(_builtInLanguages).forEach((Language:string) => {
+      const [ Module,Factory,Options ] = _builtInLanguages[Language]
+      registerCodeEditorLanguage(Language, async () => (
+        (await loadedLibrary(Module))[Factory](
+          ...(Options == null ? [] : [ Options ])
+        )
+      ))
+    })
+  }
 
 
 /**** DocOffsetIn - converts a 1-based line/column pair into a doc offset ****/
@@ -11038,6 +11211,8 @@ console.warn(ErrorToShow)
 
   export function legacyCodeEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureCodeeditorStyles()
+
       const LibrariesAreReady = useLibraries(loadCodeEditorLibraries)
 
       PropSet = parseablePropSet(PropSet)
@@ -11207,6 +11382,8 @@ console.warn(ErrorToShow)
           return
         }
 
+        _ensureBuiltInLanguages()
+
         const Loader = CodeEditorLanguageRegistry[Language]
         if (Loader == null) {
           console.warn('CodeEditor: unsupported language ' + quoted(Language))
@@ -11368,7 +11545,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.codeeditor',`
+  const ensureCodeeditorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.codeeditor',`
     .jcl-component.codeeditor {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:stretch !important;
@@ -11738,6 +11915,7 @@ console.warn(ErrorToShow)
   /**** constructor ****/
 
     constructor (Container:any, Callbacks:Indexable) {
+      ensureDrawingEditorStyles()
       this.Container = Container
       this.Callbacks = Callbacks ?? {}
 
@@ -13751,6 +13929,8 @@ console.warn(ErrorToShow)
 
   export function legacyDrawingEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureDrawingEditorStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes     = acceptableTextline(PropSet.Class) ?? ''
         let   Value       = acceptableText    (PropSet.Value)
@@ -13930,7 +14110,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.drawingeditor',`
+  const ensureDrawingEditorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.drawingeditor',`
     .jcl-component.drawingeditor {
       display:flex !important; flex-flow:column nowrap !important;
         align-items:stretch !important;
@@ -14171,6 +14351,8 @@ console.warn(ErrorToShow)
   /**** attachTo - binds this editor to its (visible) view canvas ****/
 
     attachTo (Canvas:HTMLCanvasElement):void {
+      ensureBitmapEditorStyles()             // also covers "headless" editors
+
       this.ViewCanvas   = Canvas
       this.#ViewContext = Canvas.getContext('2d') ?? undefined
       if (this.#ViewContext == null) throwError(
@@ -15366,6 +15548,8 @@ console.warn(ErrorToShow)
 
   export function legacyBitmapEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureBitmapEditorStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class)  ?? ''
         const Width        = acceptableOrdinal (PropSet.Width)  ?? 800
@@ -15521,7 +15705,7 @@ console.warn(ErrorToShow)
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.bitmapeditor',`
+  const ensureBitmapEditorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.bitmapeditor',`
     .jcl-component.bitmapeditor {
       display:block !important;
       position:relative; overflow:hidden;
@@ -15627,6 +15811,7 @@ console.warn(ErrorToShow)
     }
 
     static effectPluginFor (Type:string):JCL_RealDrawEffectPlugin|undefined {
+      _ensureBuiltInRealDrawEffects()
       return JCL_RealDrawEditor.#EffectPlugins.get(Type)
     }
 
@@ -15731,6 +15916,8 @@ console.warn(ErrorToShow)
   /**** attachTo ****/
 
     attachTo (Canvas:HTMLCanvasElement, Overlay:SVGSVGElement):void {
+      ensureRealDrawEditorStyles()           // also covers "headless" editors
+
       this.Canvas  = Canvas
       this.Context = Canvas.getContext('2d') as CanvasRenderingContext2D
       this.Overlay = Overlay
@@ -16852,164 +17039,173 @@ function _rde_buildPath (
   }
 }
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'DropShadow', Label:'Drop Shadow', Phase:'before',
-  Parameters:[
-    { Name:'Color',    Type:'color',  Label:'Farbe',      Default:'rgba(0,0,0,0.5)' },
-    { Name:'Angle',    Type:'angle',  Label:'Winkel',     Default:135, Min:0, Max:360 },
-    { Name:'Distance', Type:'number', Label:'Abstand',    Default:5,   Min:0, Max:200 },
-    { Name:'Blur',     Type:'number', Label:'Weichheit',  Default:5,   Min:0, Max:100 },
-  ],
-  render (ctx, Obj, Params) {
-    const Angle = (Params.Angle??135) * Math.PI/180
-    const Dist  = Params.Distance ?? 5
-    ctx.save()
-      ctx.shadowColor   = Params.Color ?? 'rgba(0,0,0,0.5)'
-      ctx.shadowBlur    = Params.Blur  ?? 5
-      ctx.shadowOffsetX = Math.cos(Angle) * Dist
-      ctx.shadowOffsetY = Math.sin(Angle) * Dist
-      _rde_buildPath(ctx, Obj)
-      ctx.fillStyle = '#000'; ctx.fill()
-    ctx.restore()
-  }
-})
+/**** built-in effect plug-ins (registered upon first registry access) ****/
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'OuterGlow', Label:'Outer Glow', Phase:'before',
-  Parameters:[
-    { Name:'Color',  Type:'color',  Label:'Farbe',      Default:'rgba(255,255,0,0.8)' },
-    { Name:'Blur',   Type:'number', Label:'Weichheit',  Default:10, Min:0, Max:100 },
-    { Name:'Spread', Type:'number', Label:'Ausdehnung', Default:0,  Min:0, Max:50  },
-  ],
-  render (ctx, Obj, Params) {
-    ctx.save()
-      ctx.shadowColor   = Params.Color ?? 'rgba(255,255,0,0.8)'
-      ctx.shadowBlur    = Params.Blur  ?? 10
-      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0
-      _rde_buildPath(ctx, Obj)
-      ctx.fillStyle = Params.Color ?? 'rgba(255,255,0,0.8)'; ctx.fill()
-    ctx.restore()
-  }
-})
+let _builtInRealDrawEffectsRegistered = false
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'ColorOverlay', Label:'Color Overlay', Phase:'overlay',
-  Parameters:[
-    { Name:'Color',   Type:'color',  Label:'Farbe',     Default:'#ff0000' },
-    { Name:'Opacity', Type:'number', Label:'Deckkraft', Default:1, Min:0, Max:1 },
-  ],
-  render (ctx, Obj, Params) {
-    ctx.save()
-      ctx.globalCompositeOperation = 'source-atop'
-      ctx.globalAlpha = Params.Opacity ?? 1
-      _rde_buildPath(ctx, Obj)
-      ctx.fillStyle = Params.Color ?? '#ff0000'; ctx.fill()
-    ctx.restore()
-  }
-})
+function _ensureBuiltInRealDrawEffects ():void {
+  if (_builtInRealDrawEffectsRegistered) { return }
+  _builtInRealDrawEffectsRegistered = true
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'GradientOverlay', Label:'Gradient Overlay', Phase:'overlay',
-  Parameters:[
-    { Name:'StartColor',    Type:'color',  Label:'Startfarbe', Default:'#ff0000' },
-    { Name:'EndColor',      Type:'color',  Label:'Endfarbe',   Default:'#0000ff' },
-    { Name:'GradientAngle', Type:'angle',  Label:'Winkel',     Default:0, Min:0, Max:360 },
-    { Name:'Opacity',       Type:'number', Label:'Deckkraft',  Default:1, Min:0, Max:1 },
-  ],
-  render (ctx, Obj, Params) {
-    const Angle = (Params.GradientAngle??0) * Math.PI/180
-    const cx = Obj.X + Obj.Width/2, cy = Obj.Y + Obj.Height/2
-    const R   = Math.sqrt(Obj.Width**2 + Obj.Height**2) / 2
-    const Grad = ctx.createLinearGradient(
-      cx - Math.cos(Angle)*R, cy - Math.sin(Angle)*R,
-      cx + Math.cos(Angle)*R, cy + Math.sin(Angle)*R
-    )
-    Grad.addColorStop(0, Params.StartColor ?? '#ff0000')
-    Grad.addColorStop(1, Params.EndColor   ?? '#0000ff')
-    ctx.save()
-      ctx.globalCompositeOperation = 'source-atop'
-      ctx.globalAlpha = Params.Opacity ?? 1
-      _rde_buildPath(ctx, Obj)
-      ctx.fillStyle = Grad; ctx.fill()
-    ctx.restore()
-  }
-})
+  JCL_RealDrawEditor.registerEffect({
+    Type:'DropShadow', Label:'Drop Shadow', Phase:'before',
+    Parameters:[
+      { Name:'Color',    Type:'color',  Label:'Farbe',      Default:'rgba(0,0,0,0.5)' },
+      { Name:'Angle',    Type:'angle',  Label:'Winkel',     Default:135, Min:0, Max:360 },
+      { Name:'Distance', Type:'number', Label:'Abstand',    Default:5,   Min:0, Max:200 },
+      { Name:'Blur',     Type:'number', Label:'Weichheit',  Default:5,   Min:0, Max:100 },
+    ],
+    render (ctx, Obj, Params) {
+      const Angle = (Params.Angle??135) * Math.PI/180
+      const Dist  = Params.Distance ?? 5
+      ctx.save()
+        ctx.shadowColor   = Params.Color ?? 'rgba(0,0,0,0.5)'
+        ctx.shadowBlur    = Params.Blur  ?? 5
+        ctx.shadowOffsetX = Math.cos(Angle) * Dist
+        ctx.shadowOffsetY = Math.sin(Angle) * Dist
+        _rde_buildPath(ctx, Obj)
+        ctx.fillStyle = '#000'; ctx.fill()
+      ctx.restore()
+    }
+  })
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'Stroke', Label:'Stroke', Phase:'after',
-  Parameters:[
-    { Name:'Color',    Type:'color',  Label:'Farbe',    Default:'#000000' },
-    { Name:'Width',    Type:'number', Label:'Breite',   Default:2, Min:0.5, Max:50 },
-    { Name:'Position', Type:'select', Label:'Position', Default:'outside',
-      Options:['outside','inside','center'] },
-  ],
-  render (ctx, Obj, Params) {
-    const W   = Params.Width    ?? 2
-    const Pos = Params.Position ?? 'outside'
-    ctx.save()
-      if (Pos !== 'center') {
-        ctx.globalCompositeOperation = Pos === 'outside' ? 'destination-over' : 'source-atop'
-      }
-      _rde_buildPath(ctx, Obj)
-      ctx.strokeStyle = Params.Color ?? '#000000'
-      ctx.lineWidth   = Pos === 'center' ? W : W * 2
-      ctx.stroke()
-    ctx.restore()
-  }
-})
+  JCL_RealDrawEditor.registerEffect({
+    Type:'OuterGlow', Label:'Outer Glow', Phase:'before',
+    Parameters:[
+      { Name:'Color',  Type:'color',  Label:'Farbe',      Default:'rgba(255,255,0,0.8)' },
+      { Name:'Blur',   Type:'number', Label:'Weichheit',  Default:10, Min:0, Max:100 },
+      { Name:'Spread', Type:'number', Label:'Ausdehnung', Default:0,  Min:0, Max:50  },
+    ],
+    render (ctx, Obj, Params) {
+      ctx.save()
+        ctx.shadowColor   = Params.Color ?? 'rgba(255,255,0,0.8)'
+        ctx.shadowBlur    = Params.Blur  ?? 10
+        ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0
+        _rde_buildPath(ctx, Obj)
+        ctx.fillStyle = Params.Color ?? 'rgba(255,255,0,0.8)'; ctx.fill()
+      ctx.restore()
+    }
+  })
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'InnerGlow', Label:'Inner Glow', Phase:'after',
-  Parameters:[
-    { Name:'Color',  Type:'color',  Label:'Farbe',      Default:'rgba(255,255,255,0.8)' },
-    { Name:'Blur',   Type:'number', Label:'Weichheit',  Default:8,  Min:0, Max:100 },
-    { Name:'Spread', Type:'number', Label:'Ausdehnung', Default:0,  Min:0, Max:50  },
-  ],
-  render (ctx, Obj, Params, Scratch) {
-    const SC = Scratch.getContext('2d') as OffscreenCanvasRenderingContext2D
-    SC.clearRect(0,0,Scratch.width,Scratch.height)
-    SC.save()
-      SC.shadowColor   = Params.Color ?? 'rgba(255,255,255,0.8)'
-      SC.shadowBlur    = Params.Blur  ?? 8
-      SC.shadowOffsetX = 0; SC.shadowOffsetY = 0
-      _rde_buildPath(SC as any, Obj)
-      SC.fillStyle = Params.Color ?? 'rgba(255,255,255,0.8)'; SC.fill()
-    SC.restore()
-    ctx.save()
-      ctx.globalCompositeOperation = 'source-atop'
-      ctx.drawImage(Scratch as any,0,0)
-    ctx.restore()
-  }
-})
+  JCL_RealDrawEditor.registerEffect({
+    Type:'ColorOverlay', Label:'Color Overlay', Phase:'overlay',
+    Parameters:[
+      { Name:'Color',   Type:'color',  Label:'Farbe',     Default:'#ff0000' },
+      { Name:'Opacity', Type:'number', Label:'Deckkraft', Default:1, Min:0, Max:1 },
+    ],
+    render (ctx, Obj, Params) {
+      ctx.save()
+        ctx.globalCompositeOperation = 'source-atop'
+        ctx.globalAlpha = Params.Opacity ?? 1
+        _rde_buildPath(ctx, Obj)
+        ctx.fillStyle = Params.Color ?? '#ff0000'; ctx.fill()
+      ctx.restore()
+    }
+  })
 
-JCL_RealDrawEditor.registerEffect({
-  Type:'InnerShadow', Label:'Inner Shadow', Phase:'after',
-  Parameters:[
-    { Name:'Color',    Type:'color',  Label:'Farbe',     Default:'rgba(0,0,0,0.5)' },
-    { Name:'Angle',    Type:'angle',  Label:'Winkel',    Default:135, Min:0, Max:360 },
-    { Name:'Distance', Type:'number', Label:'Abstand',   Default:5,   Min:0, Max:100 },
-    { Name:'Blur',     Type:'number', Label:'Weichheit', Default:5,   Min:0, Max:100 },
-  ],
-  render (ctx, Obj, Params, Scratch) {
-    const Angle = (Params.Angle??135) * Math.PI/180
-    const Dist  = Params.Distance ?? 5
-    const SC    = Scratch.getContext('2d') as OffscreenCanvasRenderingContext2D
-    SC.clearRect(0,0,Scratch.width,Scratch.height)
-    _rde_buildPath(SC as any, Obj); SC.fill()
-    SC.save()
-      SC.globalCompositeOperation = 'source-out'
-      SC.shadowColor   = Params.Color ?? 'rgba(0,0,0,0.5)'
-      SC.shadowBlur    = Params.Blur  ?? 5
-      SC.shadowOffsetX = Math.cos(Angle) * Dist
-      SC.shadowOffsetY = Math.sin(Angle) * Dist
+  JCL_RealDrawEditor.registerEffect({
+    Type:'GradientOverlay', Label:'Gradient Overlay', Phase:'overlay',
+    Parameters:[
+      { Name:'StartColor',    Type:'color',  Label:'Startfarbe', Default:'#ff0000' },
+      { Name:'EndColor',      Type:'color',  Label:'Endfarbe',   Default:'#0000ff' },
+      { Name:'GradientAngle', Type:'angle',  Label:'Winkel',     Default:0, Min:0, Max:360 },
+      { Name:'Opacity',       Type:'number', Label:'Deckkraft',  Default:1, Min:0, Max:1 },
+    ],
+    render (ctx, Obj, Params) {
+      const Angle = (Params.GradientAngle??0) * Math.PI/180
+      const cx = Obj.X + Obj.Width/2, cy = Obj.Y + Obj.Height/2
+      const R   = Math.sqrt(Obj.Width**2 + Obj.Height**2) / 2
+      const Grad = ctx.createLinearGradient(
+        cx - Math.cos(Angle)*R, cy - Math.sin(Angle)*R,
+        cx + Math.cos(Angle)*R, cy + Math.sin(Angle)*R
+      )
+      Grad.addColorStop(0, Params.StartColor ?? '#ff0000')
+      Grad.addColorStop(1, Params.EndColor   ?? '#0000ff')
+      ctx.save()
+        ctx.globalCompositeOperation = 'source-atop'
+        ctx.globalAlpha = Params.Opacity ?? 1
+        _rde_buildPath(ctx, Obj)
+        ctx.fillStyle = Grad; ctx.fill()
+      ctx.restore()
+    }
+  })
+
+  JCL_RealDrawEditor.registerEffect({
+    Type:'Stroke', Label:'Stroke', Phase:'after',
+    Parameters:[
+      { Name:'Color',    Type:'color',  Label:'Farbe',    Default:'#000000' },
+      { Name:'Width',    Type:'number', Label:'Breite',   Default:2, Min:0.5, Max:50 },
+      { Name:'Position', Type:'select', Label:'Position', Default:'outside',
+        Options:['outside','inside','center'] },
+    ],
+    render (ctx, Obj, Params) {
+      const W   = Params.Width    ?? 2
+      const Pos = Params.Position ?? 'outside'
+      ctx.save()
+        if (Pos !== 'center') {
+          ctx.globalCompositeOperation = Pos === 'outside' ? 'destination-over' : 'source-atop'
+        }
+        _rde_buildPath(ctx, Obj)
+        ctx.strokeStyle = Params.Color ?? '#000000'
+        ctx.lineWidth   = Pos === 'center' ? W : W * 2
+        ctx.stroke()
+      ctx.restore()
+    }
+  })
+
+  JCL_RealDrawEditor.registerEffect({
+    Type:'InnerGlow', Label:'Inner Glow', Phase:'after',
+    Parameters:[
+      { Name:'Color',  Type:'color',  Label:'Farbe',      Default:'rgba(255,255,255,0.8)' },
+      { Name:'Blur',   Type:'number', Label:'Weichheit',  Default:8,  Min:0, Max:100 },
+      { Name:'Spread', Type:'number', Label:'Ausdehnung', Default:0,  Min:0, Max:50  },
+    ],
+    render (ctx, Obj, Params, Scratch) {
+      const SC = Scratch.getContext('2d') as OffscreenCanvasRenderingContext2D
+      SC.clearRect(0,0,Scratch.width,Scratch.height)
+      SC.save()
+        SC.shadowColor   = Params.Color ?? 'rgba(255,255,255,0.8)'
+        SC.shadowBlur    = Params.Blur  ?? 8
+        SC.shadowOffsetX = 0; SC.shadowOffsetY = 0
+        _rde_buildPath(SC as any, Obj)
+        SC.fillStyle = Params.Color ?? 'rgba(255,255,255,0.8)'; SC.fill()
+      SC.restore()
+      ctx.save()
+        ctx.globalCompositeOperation = 'source-atop'
+        ctx.drawImage(Scratch as any,0,0)
+      ctx.restore()
+    }
+  })
+
+  JCL_RealDrawEditor.registerEffect({
+    Type:'InnerShadow', Label:'Inner Shadow', Phase:'after',
+    Parameters:[
+      { Name:'Color',    Type:'color',  Label:'Farbe',     Default:'rgba(0,0,0,0.5)' },
+      { Name:'Angle',    Type:'angle',  Label:'Winkel',    Default:135, Min:0, Max:360 },
+      { Name:'Distance', Type:'number', Label:'Abstand',   Default:5,   Min:0, Max:100 },
+      { Name:'Blur',     Type:'number', Label:'Weichheit', Default:5,   Min:0, Max:100 },
+    ],
+    render (ctx, Obj, Params, Scratch) {
+      const Angle = (Params.Angle??135) * Math.PI/180
+      const Dist  = Params.Distance ?? 5
+      const SC    = Scratch.getContext('2d') as OffscreenCanvasRenderingContext2D
+      SC.clearRect(0,0,Scratch.width,Scratch.height)
       _rde_buildPath(SC as any, Obj); SC.fill()
-    SC.restore()
-    ctx.save()
-      ctx.globalCompositeOperation = 'source-atop'
-      ctx.drawImage(Scratch as any,0,0)
-    ctx.restore()
-  }
-})
+      SC.save()
+        SC.globalCompositeOperation = 'source-out'
+        SC.shadowColor   = Params.Color ?? 'rgba(0,0,0,0.5)'
+        SC.shadowBlur    = Params.Blur  ?? 5
+        SC.shadowOffsetX = Math.cos(Angle) * Dist
+        SC.shadowOffsetY = Math.sin(Angle) * Dist
+        _rde_buildPath(SC as any, Obj); SC.fill()
+      SC.restore()
+      ctx.save()
+        ctx.globalCompositeOperation = 'source-atop'
+        ctx.drawImage(Scratch as any,0,0)
+      ctx.restore()
+    }
+  })
+}
 
 // InnerBevel, OuterBevel, Emboss, PillowEmboss, TextureOverlay
 // use the same registration pattern; implementations left as <<<< stubs >>>>
@@ -17022,6 +17218,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyRealDrawEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureRealDrawEditorStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes     = acceptableTextline(PropSet.Class)    ?? ''
         let   Value       = acceptableText    (PropSet.Value)
@@ -17224,7 +17422,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.realdraweditor',`
+  const ensureRealDrawEditorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.realdraweditor',`
     .jcl-component.realdraweditor {
       display:block !important;
       position:relative; overflow:hidden;
@@ -17393,6 +17591,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyNoteBoard (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureNoteboardStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes                = acceptableTextline(PropSet.Class) ?? ''
         const Notes                  = acceptableValue   (PropSet.Notes, (Value:any) => ValueIsListSatisfying(Value,ValueIsPlainObject)) ?? missingProperty('Notes')
@@ -17857,7 +18057,7 @@ JCL_RealDrawEditor.registerEffect({
     </>`
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.noteboard',`
+  const ensureNoteboardStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.noteboard',`
     .jcl-component.noteboard {
       display:block !important; position:relative;
       overflow:auto; overscroll-behavior:contain;
@@ -18324,6 +18524,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyDataFlowProcessView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureDataFlowProcessViewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes                = acceptableTextline(PropSet.Class) ?? ''
         const Nodes                  = acceptableValue   (PropSet.Nodes,       (Value:any) => ValueIsListSatisfying(Value,ValueIsPlainObject)) ?? missingProperty('Nodes')
@@ -20255,7 +20457,7 @@ JCL_RealDrawEditor.registerEffect({
     </>`
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.dataflow-process-view',`
+  const ensureDataFlowProcessViewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.dataflow-process-view',`
     .jcl-component.dataflow-process-view {
       display:block !important; position:relative;
       overflow:auto; overscroll-behavior:contain;
@@ -20504,6 +20706,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyChatView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureLegacyChatviewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -20643,7 +20847,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel, based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.legacy-chatview',`
+  const ensureLegacyChatviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.legacy-chatview',`
     .jcl-component.legacy-chatview {
       display:flex; flex-flow:column nowrap;
       background:var(--jcl-bg-color,#ffffff);
@@ -20800,6 +21004,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyChatViewControls (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureLegacyChatviewControlsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -20812,7 +21018,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  installStylesheetFor('jcl-component.legacy-chatview-controls',`
+  const ensureLegacyChatviewControlsStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.legacy-chatview-controls',`
     .jcl-component.legacy-chatview .controls {
       display:flex; align-items:center; flex-wrap:wrap;
       flex:1 1 auto;
@@ -20961,6 +21167,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacySpreadsheetEditor (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureSpreadsheeteditorStyles()
+
       const LibrariesAreReady = useLibraries(loadSpreadsheetLibraries)
 
       PropSet = parseablePropSet(PropSet)
@@ -21145,7 +21353,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.spreadsheeteditor',`
+  const ensureSpreadsheeteditorStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.spreadsheeteditor',`
     .jcl-component.spreadsheeteditor {
       position:relative; overflow:auto;
       background:white; color:black;
@@ -21226,6 +21434,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyKanbanBoard (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureKanbanboardStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes              = acceptableTextline(PropSet.Class) ?? ''
         const Columns              = acceptableValue   (PropSet.Columns, (Value:any) => ValueIsListSatisfying(Value,ValueIsPlainObject)) ?? missingProperty('Columns')
@@ -21406,7 +21616,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.kanbanboard',`
+  const ensureKanbanboardStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.kanbanboard',`
     .jcl-component.kanbanboard {
       display:flex !important; flex-flow:row nowrap !important; align-items:stretch !important;
       gap:10px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
@@ -21469,6 +21679,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function legacyQRCodeView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureQrcodeviewStyles()
+
       const LibrariesAreReady = useLibraries(loadQRCodeViewLibraries)
 
       PropSet = parseablePropSet(PropSet)
@@ -21506,7 +21718,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.qrcodeview',`
+  const ensureQrcodeviewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.qrcodeview',`
     .jcl-component.legacy-qrcode-view {
       display:inline-block; position:relative;
       width:160px; height:160px;
@@ -21521,8 +21733,9 @@ JCL_RealDrawEditor.registerEffect({
 /**** common styling for all styled input components ****/
 // mimics the look and feel of shadcn/ui input components, based on JCL
 // swatches - components just add specific rules where they have to deviate
+// (and call this installer while rendering)
 
-  installStylesheetFor('jcl-component.styled-input',`
+  const ensureStyledInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-input',`
     .jcl-component.styled-input {
       height:36px; min-width:0px;
       border:solid 1px var(--jcl-border-color,#ebebeb);
@@ -21596,6 +21809,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledButton (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledButtonStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -21611,7 +21826,9 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Button", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-button',`
+// also ensured by every component which builds on the "styled-button" look
+
+  const ensureStyledButtonStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-button',`
     .jcl-component.styled-button {
       display:inline-flex; align-items:center; justify-content:center;
       gap:8px; flex-shrink:0;
@@ -21717,6 +21934,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCheckbox (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCheckboxStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -21759,7 +21978,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Checkbox", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-checkbox',`
+  const ensureStyledCheckboxStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-checkbox',`
     .jcl-component.styled-checkbox {
       height:36px;
       min-width:20px; min-height:20px;
@@ -21847,6 +22066,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledRadiobutton (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledRadiobuttonStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -21885,7 +22106,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "RadioGroupItem", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-radiobutton',`
+  const ensureStyledRadiobuttonStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-radiobutton',`
     .jcl-component.styled-radiobutton {
       height:36px;
       min-width:20px; min-height:20px;
@@ -21970,6 +22191,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledGauge (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledGaugeStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes    = acceptableTextline(PropSet.Class) ?? ''
         const Style      = acceptableText    (PropSet.Style)
@@ -21994,7 +22217,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel like a shadcn/ui "Progress", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-gauge',`
+  const ensureStyledGaugeStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-gauge',`
     .jcl-component.styled-gauge {
       height:36px;
       min-width:40px; min-height:20px;
@@ -22070,6 +22293,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledProgressbar (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledProgressbarStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -22087,7 +22312,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Progress", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-progressbar',`
+  const ensureStyledProgressbarStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-progressbar',`
     .jcl-component.styled-progressbar {
       height:36px;
       min-width:40px; min-height:20px;
@@ -22153,6 +22378,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSlider (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSliderStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -22224,7 +22451,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Slider", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-slider',`
+  const ensureStyledSliderStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-slider',`
     .jcl-component.styled-slider {
       height:36px;
       min-width:40px; min-height:20px;
@@ -22343,7 +22570,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledTextlineInput ****/
 
-  export const styledTextlineInput = textualInputComponentFor({
+  export const styledTextlineInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'styledTextlineInput', InputType:'text',
     ClassName:'styled-textline-input', ValueIsValid:ValueIsTextline,
     withSpellChecking:true, Styled:true
@@ -22351,7 +22578,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledPasswordInput ****/
 
-  export const styledPasswordInput = textualInputComponentFor({
+  export const styledPasswordInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'styledPasswordInput', InputType:'password',
     ClassName:'styled-password-input', ValueIsValid:ValueIsTextline,
     withSuggestions:false, Styled:true
@@ -22361,6 +22588,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledNumberInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsNumber(Value) || ValueIsSpecial(Value))
@@ -22432,7 +22661,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledEMailAddressInput ****/
 
-  export const styledEMailAddressInput = textualInputComponentFor({
+  export const styledEMailAddressInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'styledEMailAddressInput', InputType:'email',
     ClassName:'styled-emailaddress-input', ValueIsValid:ValueIsEMailAddress,
     withMultiple:true, Styled:true
@@ -22440,7 +22669,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledPhoneNumberInput ****/
 
-  export const styledPhoneNumberInput = textualInputComponentFor({
+  export const styledPhoneNumberInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'styledPhoneNumberInput', InputType:'tel',
     ClassName:'styled-phonenumber-input', ValueIsValid:ValueIsPhoneNumber,
     Styled:true
@@ -22448,7 +22677,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledURLInput ****/
 
-  export const styledURLInput = textualInputComponentFor({
+  export const styledURLInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'styledURLInput', InputType:'url',
     ClassName:'styled-url-input', ValueIsValid:ValueIsURL,
     Styled:true
@@ -22456,7 +22685,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledTimeInput ****/
 
-  export const styledTimeInput = temporalInputComponentFor({
+  export const styledTimeInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'styledTimeInput', InputType:'time',
     ClassName:'styled-time-input', ValueIsValid:ValueIsTime,
     Styled:true
@@ -22464,7 +22693,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledDateTimeInput ****/
 
-  export const styledDateTimeInput = temporalInputComponentFor({
+  export const styledDateTimeInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'styledDateTimeInput', InputType:'datetime-local',
     ClassName:'styled-datetime-input', ValueIsValid:ValueIsDateTime,
     Styled:true
@@ -22472,7 +22701,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledDateInput ****/
 
-  export const styledDateInput = temporalInputComponentFor({
+  export const styledDateInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'styledDateInput', InputType:'date',
     ClassName:'styled-date-input', ValueIsValid:ValueIsDate,
     Pattern:JCL_DatePattern, Styled:true
@@ -22480,7 +22709,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledWeekInput ****/
 
-  export const styledWeekInput = temporalInputComponentFor({
+  export const styledWeekInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'styledWeekInput', InputType:'week',
     ClassName:'styled-week-input', ValueIsValid:ValueIsWeek,
     Pattern:JCL_WeekPattern, Styled:true
@@ -22488,7 +22717,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledMonthInput ****/
 
-  export const styledMonthInput = temporalInputComponentFor({
+  export const styledMonthInput = /*@__PURE__*/ temporalInputComponentFor({
     Name:'styledMonthInput', InputType:'month',
     ClassName:'styled-month-input', ValueIsValid:ValueIsMonth,
     Pattern:JCL_MonthPattern, Styled:true
@@ -22496,7 +22725,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** styledSearchInput ****/
 
-  export const styledSearchInput = textualInputComponentFor({
+  export const styledSearchInput = /*@__PURE__*/ textualInputComponentFor({
     Name:'styledSearchInput', InputType:'search',
     ClassName:'styled-search-input', ValueIsValid:ValueIsTextline,
     withSpellChecking:true, Styled:true
@@ -22512,6 +22741,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledColorInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputStyles()
+      ensureStyledColorInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -22560,7 +22792,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-input" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-color-input',`
+  const ensureStyledColorInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-color-input',`
     .jcl-component.styled-color-input {
       min-width:40px;
       padding:4px;
@@ -22614,6 +22846,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDropDown (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputStyles()
+      ensureStyledDropdownStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Value        = acceptableValue   (PropSet.Value, (Value:any) => ValueIsTextline(Value) || ValueIsSpecial(Value))
@@ -22665,7 +22900,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-input" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-dropdown',`
+  const ensureStyledDropdownStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-dropdown',`
     .jcl-component.styled-dropdown {
       display:inline-block;
       width:fit-content; height:fit-content;
@@ -22720,6 +22955,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledFileInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputStyles()
+      ensureStyledFileInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -22774,7 +23012,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-input" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-file-input',`
+  const ensureStyledFileInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-file-input',`
     .jcl-component.styled-file-input {
       display:inline-block;
       min-width:60px;
@@ -22805,6 +23043,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTextInput (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputStyles()
+      ensureStyledTextInputStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes       = acceptableTextline(PropSet.Class) ?? ''
         const Style         = acceptableText    (PropSet.Style)
@@ -22856,7 +23097,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-input" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-text-input',`
+  const ensureStyledTextInputStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-text-input',`
     .jcl-component.styled-text-input {
       height:auto; min-height:64px;      /* shadcn "Textarea" uses "min-h-16" */
       padding:8px 12px;
@@ -22903,6 +23144,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledIcon (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledButtonStyles()
+      ensureStyledIconStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Value = acceptableURL(PropSet.Value) ?? `${IconFolder}/circle-information.png`
 
@@ -22917,7 +23161,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-button" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-icon',`
+  const ensureStyledIconStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-icon',`
     .jcl-component.styled-icon {
       width:36px; height:36px; padding:0px;
     }
@@ -22958,6 +23202,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledFAIcon (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledButtonStyles()
+      ensureStyledFaIconStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Value = acceptableValue(
           PropSet.Value, (Value:any) => ValueIsOneOf(Value,JCL_FAIconNames)
@@ -22972,7 +23219,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-button" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-fa-icon',`
+  const ensureStyledFaIconStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-fa-icon',`
     .jcl-component.styled-fa-icon {
       width:36px; height:36px; padding:0px;
     }
@@ -23057,6 +23304,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledBadge (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledBadgeStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -23069,7 +23318,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Badge", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-badge',`
+  const ensureStyledBadgeStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-badge',`
     .jcl-component.styled-badge {
       display:inline-flex; align-items:center; justify-content:center;
       gap:4px; flex-shrink:0;
@@ -23107,6 +23356,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSpinner (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSpinnerStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -23127,7 +23378,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Spinner" ****/
 
-  installStylesheetFor('jcl-component.styled-spinner',`
+  const ensureStyledSpinnerStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-spinner',`
     @keyframes jcl-spin {
       to { transform:rotate(360deg) }
     }
@@ -23153,6 +23404,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledKbd (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledKbdStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -23165,7 +23418,7 @@ JCL_RealDrawEditor.registerEffect({
 /**** look and feel of a "Kbd", based on JCL swatches ****/
 // the thicker bottom border gives the typical "keycap" look
 
-  installStylesheetFor('jcl-component.styled-kbd',`
+  const ensureStyledKbdStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-kbd',`
     .jcl-component.styled-kbd {
       display:inline-flex; align-items:center; justify-content:center;
       gap:4px;
@@ -23187,6 +23440,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledAvatar (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledAvatarStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Style    = acceptableText    (PropSet.Style)
@@ -23226,7 +23481,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Avatar", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-avatar',`
+  const ensureStyledAvatarStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-avatar',`
     .jcl-component.styled-avatar {
       display:flex; flex-shrink:0;
       width:40px; height:40px;
@@ -23269,6 +23524,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSkeleton (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSkeletonStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -23281,7 +23538,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Skeleton", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-skeleton',`
+  const ensureStyledSkeletonStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-skeleton',`
     @keyframes jcl-pulse {
       0%, 100% { opacity:1 }
       50%      { opacity:0.5 }
@@ -23308,6 +23565,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTooltip (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledTooltipStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes   = acceptableTextline(PropSet.Class) ?? ''
         const Style     = acceptableText    (PropSet.Style)
@@ -23360,7 +23619,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Tooltip", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-tooltip',`
+  const ensureStyledTooltipStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-tooltip',`
     .jcl-component.styled-tooltip {
       display:inline-block;
       width:fit-content;
@@ -23493,6 +23752,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledPopover (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledPopoverStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -23557,7 +23818,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Popover", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-popover',`
+  const ensureStyledPopoverStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-popover',`
     .jcl-component.styled-popover {
       display:inline-block;
       width:fit-content;
@@ -23595,6 +23856,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDropDownMenu (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -23655,6 +23918,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDropDownMenuItem (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Icon     = acceptableTextline(PropSet.Icon)
@@ -23683,6 +23948,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDropDownMenuSeparator (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
 
@@ -23698,6 +23965,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDropDownMenuGroup (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Label   = acceptableTextline(PropSet.Label)
@@ -23720,6 +23989,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDropDownMenuSubMenu (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Icon     = acceptableTextline(PropSet.Icon)
@@ -23759,7 +24030,7 @@ JCL_RealDrawEditor.registerEffect({
 // the shell of the hosting OverlayView is shared with "styledPopover" (s.
 // there), the menu item rules are shared with "styledCommandItem"
 
-  installStylesheetFor('jcl-component.styled-dropdown-menu',`
+  const ensureStyledDropdownMenuStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-dropdown-menu',`
     .jcl-component.styled-dropdown-menu {
       display:inline-block;
       width:fit-content;
@@ -23887,12 +24158,14 @@ JCL_RealDrawEditor.registerEffect({
 // visible items, "Enter" picks the highlighted one, clicking any (enabled)
 // item closes the palette after invoking its "onClick"
 
-  const CommandFilterContext = createContext('')
+  const CommandFilterContext = /*@__PURE__*/ createContext('')
 
 /**** the (internal) palette panel holds the search state ****/
 
   function CommandPanel (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCommandPaletteStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Renderer    = acceptableFunction(PropSet.Renderer) ?? missingProperty('Renderer')
         const Placeholder = acceptableTextline(PropSet.Placeholder) ?? 'type a command or search...'
@@ -23962,6 +24235,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCommandPalette (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCommandPaletteStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -24022,6 +24297,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCommandItem (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCommandPaletteStyles(); ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Icon     = acceptableTextline(PropSet.Icon)
@@ -24065,6 +24342,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCommandGroup (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCommandPaletteStyles(); ensureStyledDropdownMenuStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Label   = acceptableTextline(PropSet.Label)
@@ -24084,7 +24363,7 @@ JCL_RealDrawEditor.registerEffect({
 // the command item rules are shared with the menu items of
 // "styledDropDownMenu" (s. there)
 
-  installStylesheetFor('jcl-component.styled-command-palette',`
+  const ensureStyledCommandPaletteStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-command-palette',`
     .jcl-component.styled-command-palette-trigger {
       display:inline-block;
       width:fit-content;
@@ -24184,6 +24463,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledToast (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledToastStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes     = acceptableTextline(PropSet.Class) ?? ''
         const Style       = acceptableText    (PropSet.Style)
@@ -24217,7 +24498,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a "Sonner" toast, based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-toast',`
+  const ensureStyledToastStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-toast',`
     .jcl-component.styled-toast {
       display:flex; align-items:flex-start;
       gap:8px; width:100%;
@@ -24302,10 +24583,11 @@ JCL_RealDrawEditor.registerEffect({
 /**** styledCard ****/
 
   export function styledCard (PropSet:Indexable):any {
+    ensureStyledCardStyles()
     return renderedStyledContainer('div','styled-card',PropSet)
   }
 
-  installStylesheetFor('jcl-component.styled-card',`
+  const ensureStyledCardStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-card',`
     .jcl-component.styled-card {
       display:flex; flex-flow:column nowrap;
       gap:24px;
@@ -24322,26 +24604,30 @@ JCL_RealDrawEditor.registerEffect({
 /**** styledCardHeader (incl. styledCardAction) ****/
 
   export function styledCardHeader (PropSet:Indexable):any {
+    ensureStyledCardPartsStyles()
     return renderedStyledContainer('div','styled-card-header',PropSet)
   }
 
   export function styledCardAction (PropSet:Indexable):any {
+    ensureStyledCardPartsStyles()
     return renderedStyledContainer('div','styled-card-action',PropSet)
   }
 
 /**** styledCardContent ****/
 
   export function styledCardContent (PropSet:Indexable):any {
+    ensureStyledCardPartsStyles()
     return renderedStyledContainer('div','styled-card-content',PropSet)
   }
 
 /**** styledCardFooter ****/
 
   export function styledCardFooter (PropSet:Indexable):any {
+    ensureStyledCardPartsStyles()
     return renderedStyledContainer('div','styled-card-footer',PropSet)
   }
 
-  installStylesheetFor('jcl-component.styled-card-parts',`
+  const ensureStyledCardPartsStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-card-parts',`
     .jcl-component.styled-card-header {
       display:grid;
       grid-template-rows:auto auto; grid-auto-rows:min-content;
@@ -24372,6 +24658,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCardTitle (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCardTextsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -24385,6 +24673,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCardDescription (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledCardTextsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Value   = acceptableText    (PropSet.Value)
@@ -24394,7 +24684,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  installStylesheetFor('jcl-component.styled-card-texts',`
+  const ensureStyledCardTextsStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-card-texts',`
     .jcl-component.styled-card-title {
       font-weight:600; line-height:1;
     }
@@ -24439,6 +24729,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSidebar (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSidebarStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes          = acceptableTextline(PropSet.Class) ?? ''
         const Style            = acceptableText    (PropSet.Style)
@@ -24495,7 +24787,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  installStylesheetFor('jcl-component.styled-sidebar',`
+  const ensureStyledSidebarStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-sidebar',`
     .jcl-component.styled-sidebar {
       display:flex; flex-flow:column nowrap; flex-shrink:0;
       position:relative;               /* anchors the collapse button */
@@ -24720,22 +25012,25 @@ JCL_RealDrawEditor.registerEffect({
 /**** styledSidebarHeader ****/
 
   export function styledSidebarHeader (PropSet:Indexable):any {
+    ensureStyledSidebarSectionsStyles()
     return renderedStyledContainer('div','styled-sidebar-header',PropSet)
   }
 
 /**** styledSidebarContent ****/
 
   export function styledSidebarContent (PropSet:Indexable):any {
+    ensureStyledSidebarSectionsStyles()
     return renderedStyledContainer('div','styled-sidebar-content',PropSet)
   }
 
 /**** styledSidebarFooter ****/
 
   export function styledSidebarFooter (PropSet:Indexable):any {
+    ensureStyledSidebarSectionsStyles()
     return renderedStyledContainer('div','styled-sidebar-footer',PropSet)
   }
 
-  installStylesheetFor('jcl-component.styled-sidebar-sections',`
+  const ensureStyledSidebarSectionsStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-sidebar-sections',`
     .jcl-component.styled-sidebar-header {
       display:flex; flex-flow:column nowrap; flex-shrink:0;
       gap:8px; padding:8px;
@@ -24764,6 +25059,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSidebarItem (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSidebarPartsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Icon     = acceptableTextline(PropSet.Icon)
@@ -24800,6 +25097,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSidebarSeparator (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSidebarPartsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -24814,6 +25113,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSidebarGroup (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSidebarPartsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -24828,7 +25129,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  installStylesheetFor('jcl-component.styled-sidebar-parts',`
+  const ensureStyledSidebarPartsStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-sidebar-parts',`
     .jcl-component.styled-sidebar-item {
       display:flex; align-items:center; flex-shrink:0;
       gap:8px; width:100%; height:32px;
@@ -24922,6 +25223,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledField (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledFieldStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes     = acceptableTextline(PropSet.Class) ?? ''
         const Style       = acceptableText    (PropSet.Style)
@@ -24951,7 +25254,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Field", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-field',`
+  const ensureStyledFieldStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-field',`
     .jcl-component.styled-field {
       display:flex; flex-flow:column nowrap;
       gap:12px; width:100%;
@@ -25015,6 +25318,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledInputGroup (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputGroupStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -25030,6 +25335,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledInputGroupAddon (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledInputGroupStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -25055,7 +25362,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "InputGroup", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-input-group',`
+  const ensureStyledInputGroupStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-input-group',`
     .jcl-component.styled-input-group {
       display:flex; flex-flow:row nowrap; align-items:center;
       width:100%; min-width:0px; height:36px;
@@ -25173,6 +25480,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledSwitch (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledSwitchStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -25214,7 +25523,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Switch", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-switch',`
+  const ensureStyledSwitchStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-switch',`
     .jcl-component.styled-switch {
       height:36px;
       min-width:36px; min-height:20px;
@@ -25308,6 +25617,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledMultiSwitch (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledMultiSwitchStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -25362,6 +25673,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledThemeSwitch (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledMultiSwitchStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -25381,7 +25694,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel, based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-multi-switch',`
+  const ensureStyledMultiSwitchStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-multi-switch',`
     .jcl-component.styled-multi-switch {
       display:inline-flex; align-items:center;
       gap:2px; width:fit-content;
@@ -25464,6 +25777,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledRadioGroup (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledRadioGroupStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -25505,7 +25820,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "RadioGroup", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-radio-group',`
+  const ensureStyledRadioGroupStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-radio-group',`
     .jcl-component.styled-radio-group {
       display:flex; flex-flow:column nowrap;
       gap:12px; width:fit-content;
@@ -25553,6 +25868,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledCombobox (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledComboboxStyles()
+      ensureComboboxPopupStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -25725,7 +26043,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Combobox", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-combobox',`
+  const ensureStyledComboboxStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-combobox',`
     .jcl-component.styled-combobox {
       display:inline-block;
     }
@@ -25751,7 +26069,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** the popup lives in document.body and needs its own stylesheet ****/
 
-  installStylesheetFor('jcl-combobox-popup',`
+  const ensureComboboxPopupStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-combobox-popup',`
     .jcl-combobox-popup {
       box-sizing:border-box;
       display:block; position:fixed; overflow-y:auto; overscroll-behavior-y:contain;
@@ -25805,6 +26123,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDatePicker (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDatePickerStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -25875,7 +26195,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Date Picker", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-date-picker',`
+  const ensureStyledDatePickerStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-date-picker',`
     .jcl-component.styled-date-picker .styled-date-picker-trigger {
       width:240px; justify-content:flex-start;
       font-weight:400;
@@ -25916,6 +26236,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTabStrip (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledTabstripStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes            = acceptableTextline(PropSet.Class) ?? ''
         let   activeIndex        = acceptableOrdinal (PropSet.activeIndex)
@@ -25981,7 +26303,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "TabsList", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-tabstrip',`
+  const ensureStyledTabstripStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-tabstrip',`
     .jcl-component.styled-tabstrip {
       display:inline-flex; flex-flow:row nowrap; align-items:center;
       width:fit-content; height:36px;
@@ -26093,6 +26415,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledBreadcrumb (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledBreadcrumbStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes     = acceptableTextline(PropSet.Class) ?? ''
         const Style       = acceptableText    (PropSet.Style)
@@ -26132,7 +26456,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** look and feel of a shadcn/ui "Breadcrumb", based on JCL swatches ****/
 
-  installStylesheetFor('jcl-component.styled-breadcrumb',`
+  const ensureStyledBreadcrumbStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-breadcrumb',`
     .jcl-component.styled-breadcrumb > ol {
       display:flex; flex-flow:row wrap; align-items:center;
       gap:6px;
@@ -26191,6 +26515,9 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledPagination (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledButtonStyles()
+      ensureStyledPaginationStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes      = acceptableTextline(PropSet.Class) ?? ''
         const Style        = acceptableText    (PropSet.Style)
@@ -26263,7 +26590,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the shared "styled-button" stylesheet ****/
 
-  installStylesheetFor('jcl-component.styled-pagination',`
+  const ensureStyledPaginationStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-pagination',`
     .jcl-component.styled-pagination {
       display:flex; justify-content:center;
       width:fit-content;
@@ -26316,6 +26643,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledAccordionFold (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledAccordionStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes           = acceptableTextline(PropSet.Class) ?? ''
         const Header            = acceptableTextline(PropSet.Header) ?? missingProperty('Header')
@@ -26373,7 +26702,7 @@ JCL_RealDrawEditor.registerEffect({
 // like in the original, the accordion frames its folds - which then need
 // some horizontal padding (standalone folds remain unpadded)
 
-  installStylesheetFor('jcl-component.styled-accordion',`
+  const ensureStyledAccordionStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-accordion',`
     .jcl-component.styled-accordion {
       display:flex; flex-flow:column nowrap;
       width:100%;
@@ -26470,6 +26799,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTable (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledTableStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes   = acceptableTextline(PropSet.Class) ?? ''
         const Style     = acceptableText    (PropSet.Style)
@@ -26492,7 +26823,7 @@ JCL_RealDrawEditor.registerEffect({
     })
   }
 
-  installStylesheetFor('jcl-component.styled-table',`
+  const ensureStyledTableStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-table',`
     .jcl-component.styled-table-container {
       position:relative;
       width:100%; overflow:auto; overscroll-behavior:contain;
@@ -26534,9 +26865,9 @@ JCL_RealDrawEditor.registerEffect({
     }
   }
 
-  export const styledTableHeader = TablePartFor('thead','styled-table-header')
-  export const styledTableBody   = TablePartFor('tbody','styled-table-body')
-  export const styledTableFooter = TablePartFor('tfoot','styled-table-footer')
+  export const styledTableHeader = /*@__PURE__*/ TablePartFor('thead','styled-table-header')
+  export const styledTableBody   = /*@__PURE__*/ TablePartFor('tbody','styled-table-body')
+  export const styledTableFooter = /*@__PURE__*/ TablePartFor('tfoot','styled-table-footer')
 
 /**** styledTableRow ****/
 
@@ -26544,6 +26875,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTableRow (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledTablePartsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes  = acceptableTextline(PropSet.Class) ?? ''
         const Style    = acceptableText    (PropSet.Style)
@@ -26564,6 +26897,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTableHead (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledTablePartsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -26583,6 +26918,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledTableCell (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledTablePartsStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes = acceptableTextline(PropSet.Class) ?? ''
         const Style   = acceptableText    (PropSet.Style)
@@ -26603,7 +26940,7 @@ JCL_RealDrawEditor.registerEffect({
 // borders sit on the cells (not on the rows), as "border-collapse:separate"
 // is needed to keep them visible under the sticky header
 
-  installStylesheetFor('jcl-component.styled-table-parts',`
+  const ensureStyledTablePartsStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-table-parts',`
     .styled-table .styled-table-head {
       height:40px; padding:0px 8px;
       border-bottom:solid 1px var(--jcl-border-color,#ebebeb);
@@ -26672,6 +27009,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledDataTable (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureStyledDataTableStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes           = acceptableTextline(PropSet.Class) ?? ''
         const Style             = acceptableText    (PropSet.Style)
@@ -26860,7 +27199,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** deviations from the "styled-table" stylesheets ****/
 
-  installStylesheetFor('jcl-component.styled-data-table',`
+  const ensureStyledDataTableStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-data-table',`
     .jcl-component.styled-data-table {
       display:flex; flex-flow:column nowrap;
       gap:8px; width:100%;
@@ -26940,6 +27279,8 @@ JCL_RealDrawEditor.registerEffect({
 
   export function styledMonthView (PropSet:Indexable):any {
     return safelyRendered(() => {
+      ensureCalendarViewStyles(); ensureMonthViewStyles()
+
       PropSet = parseablePropSet(PropSet)
         const Classes       = acceptableTextline(PropSet.Class) ?? ''
         const Style         = acceptableText    (PropSet.Style)
@@ -27071,7 +27412,7 @@ JCL_RealDrawEditor.registerEffect({
 // the frame (root, header, caption, navigation and chevrons) is shared by
 // "styledMonthView", "styledQuarterView" and "styledYearView"
 
-  installStylesheetFor('jcl-component.styled-calendar-view',`
+  const ensureCalendarViewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-calendar-view',`
     .jcl-component.styled-calendar-view {
       display:inline-block;
       width:fit-content;
@@ -27139,7 +27480,7 @@ JCL_RealDrawEditor.registerEffect({
 
 /**** the day grid of "styledMonthView" itself ****/
 
-  installStylesheetFor('jcl-component.styled-month-view',`
+  const ensureMonthViewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-month-view',`
     .jcl-component.styled-month-view > .grid {
       display:grid;
       grid-template-columns:repeat(7,32px);
@@ -27216,6 +27557,7 @@ JCL_RealDrawEditor.registerEffect({
     CaptionFor:(Period:any) => string,
     MonthsOf:(Period:any) => string[],
     withOrientation?:boolean
+    ensureStyles?:() => void
   }
 
   function multiMonthViewFor (
@@ -27225,11 +27567,14 @@ JCL_RealDrawEditor.registerEffect({
       Name, ClassName, PeriodKey, ValueIsPeriod,
       defaultPeriodFor, shiftedPeriod, CaptionFor, MonthsOf,
       withOrientation = false
+      , ensureStyles
     } = Options
     const changeCallbackName = 'on' + PeriodKey + 'Change'
 
     return function MultiMonthView (PropSet:Indexable):any {
       return safelyRendered(() => {
+        ensureCalendarViewStyles(); ensureStyles?.()
+
         PropSet = parseablePropSet(PropSet)
           const Classes        = acceptableTextline(PropSet.Class) ?? ''
           const Style          = acceptableText    (PropSet.Style)
@@ -27311,7 +27656,7 @@ JCL_RealDrawEditor.registerEffect({
 // picking a day invokes "onValueInput" with its ISO date
 
   export const JCL_QuarterPattern = '\\d{4}-Q[1-4]'
-  export const JCL_QuarterRegExp  = RegExpForPattern(JCL_QuarterPattern)
+  export const JCL_QuarterRegExp  = /*@__PURE__*/ RegExpForPattern(JCL_QuarterPattern)
 
   export function ValueIsQuarter (Value:any):boolean {
     return ValueIsStringMatching(Value,JCL_QuarterRegExp)
@@ -27321,7 +27666,24 @@ JCL_RealDrawEditor.registerEffect({
     ISODate.slice(0,4) + '-Q' + (Math.floor((Number(ISODate.slice(5,7))-1)/3)+1)
   )
 
-  export const styledQuarterView = multiMonthViewFor({
+/**** look and feel, matching "styledMonthView" ****/
+
+// header, navigation and chevrons come from the shared "styled-calendar-view"
+
+  const ensureQuarterViewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-quarter-view',`
+    .jcl-component.styled-quarter-view > .months {
+      display:flex; flex-flow:row nowrap; align-items:flex-start;
+      gap:8px;
+    }
+
+    .jcl-component.styled-quarter-view.orientation-vertical > .months {
+      flex-flow:column nowrap; align-items:center;
+    }
+  `)
+
+/**** the component itself ****/
+
+  export const styledQuarterView = /*@__PURE__*/ multiMonthViewFor({
     Name:'styledQuarterView', ClassName:'styled-quarter-view',
     PeriodKey:'Quarter', ValueIsPeriod:ValueIsQuarter,
     defaultPeriodFor:QuarterOfISODate,
@@ -27345,23 +27707,9 @@ JCL_RealDrawEditor.registerEffect({
         }
       return MonthList
     },
-    withOrientation:true
+    withOrientation:true,
+    ensureStyles:ensureQuarterViewStyles
   })
-
-/**** look and feel, matching "styledMonthView" ****/
-
-// header, navigation and chevrons come from the shared "styled-calendar-view"
-
-  installStylesheetFor('jcl-component.styled-quarter-view',`
-    .jcl-component.styled-quarter-view > .months {
-      display:flex; flex-flow:row nowrap; align-items:flex-start;
-      gap:8px;
-    }
-
-    .jcl-component.styled-quarter-view.orientation-vertical > .months {
-      flex-flow:column nowrap; align-items:center;
-    }
-  `)
 
 /**** styledYearView ****/
 
@@ -27373,7 +27721,21 @@ JCL_RealDrawEditor.registerEffect({
 // reported through "onYearChange"), "Min"/"Max" limit the selectable dates
 // and picking a day invokes "onValueInput" with its ISO date
 
-  export const styledYearView = multiMonthViewFor({
+/**** look and feel, matching "styledMonthView" ****/
+
+// header, navigation and chevrons come from the shared "styled-calendar-view"
+
+  const ensureYearViewStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.styled-year-view',`
+    .jcl-component.styled-year-view > .months {
+      display:grid;
+      grid-template-columns:repeat(3,min-content);
+      gap:8px;
+    }
+  `)
+
+/**** the component itself ****/
+
+  export const styledYearView = /*@__PURE__*/ multiMonthViewFor({
     Name:'styledYearView', ClassName:'styled-year-view',
     PeriodKey:'Year',
     ValueIsPeriod:(Value:any) => ValueIsIntegerInRange(Value,1,9999),
@@ -27386,43 +27748,46 @@ JCL_RealDrawEditor.registerEffect({
           MonthList.push(Year + '-' + String(MonthNumber).padStart(2,'0'))
         }
       return MonthList
-    }
+    },
+    ensureStyles:ensureYearViewStyles
   })
-
-/**** look and feel, matching "styledMonthView" ****/
-
-// header, navigation and chevrons come from the shared "styled-calendar-view"
-
-  installStylesheetFor('jcl-component.styled-year-view',`
-    .jcl-component.styled-year-view > .months {
-      display:grid;
-      grid-template-columns:repeat(3,min-content);
-      gap:8px;
-    }
-  `)
 
 //----------------------------------------------------------------------------//
 //                             JCL_AppletElement                              //
 //----------------------------------------------------------------------------//
 
-  _extendL10nDictionary('en', {
-    'jcl.applet.compilation-error.title':  'Compilation Error',
-    'jcl.applet.compilation-error.prefix': 'Compiling Applet "src" failed with ',
-    'jcl.applet.runtime-error.title':      'Applet Failure',
-    'jcl.applet.runtime-error.prefix':     'JCL Applet failed with ',
-  })
-  _extendL10nDictionary('de', {
-    'jcl.applet.compilation-error.title':  'Kompilierungsfehler',
-    'jcl.applet.compilation-error.prefix': 'Kompilieren des Applet-Skripts fehlgeschlagen: ',
-    'jcl.applet.runtime-error.title':      'Laufzeitfehler',
-    'jcl.applet.runtime-error.prefix':     'JCL-Applet fehlgeschlagen: ',
-  })
+/**** built-in applet error messages ****/
+
+// registered lazily upon applet construction in order to keep this module
+// free of side effects at load time
+
+  let _AppletTranslationsRegistered = false
+
+  function _ensureAppletTranslations ():void {
+    if (_AppletTranslationsRegistered) { return }
+    _AppletTranslationsRegistered = true
+
+    _extendL10nDictionary('en', {
+      'jcl.applet.compilation-error.title':  'Compilation Error',
+      'jcl.applet.compilation-error.prefix': 'Compiling Applet "src" failed with ',
+      'jcl.applet.runtime-error.title':      'Applet Failure',
+      'jcl.applet.runtime-error.prefix':     'JCL Applet failed with ',
+    })
+    _extendL10nDictionary('de', {
+      'jcl.applet.compilation-error.title':  'Kompilierungsfehler',
+      'jcl.applet.compilation-error.prefix': 'Kompilieren des Applet-Skripts fehlgeschlagen: ',
+      'jcl.applet.runtime-error.title':      'Laufzeitfehler',
+      'jcl.applet.runtime-error.prefix':     'JCL-Applet fehlgeschlagen: ',
+    })
+  }
 
   export class JCL_AppletElement extends HTMLElement {
     private _Renderer:JCL_Renderer
 
     constructor () {
       super()
+
+      _ensureAppletTranslations()
 
     /**** get (and compile) script ****/
 
@@ -27494,6 +27859,7 @@ JCL_RealDrawEditor.registerEffect({
 /**** AppletView ****/
 
   export function AppletView (PropSet:Indexable):any {
+    ensureJCLAppletStyles()
     const [ asyncRendering,setAsyncRendering ] = useState<any>(undefined)
     const asyncRenderingRef                    = useRef<any>(undefined)
     const hasAsyncResult                       = useRef<boolean>(false)
@@ -27638,7 +28004,7 @@ JCL_RealDrawEditor.registerEffect({
     </div>`
   }
 
-  if (typeof document !== 'undefined') installStylesheetFor('jcl-component.jcl-applet', `
+  const ensureJCLAppletStyles = /*@__PURE__*/ StylesheetInstallerFor('jcl-component.jcl-applet', `
     .jcl-component.jcl-applet {
       display:contents;
     }
@@ -28209,8 +28575,17 @@ JCL_RealDrawEditor.registerEffect({
 //                     DOCX[FileRead]AsText/HTML/Markdown                     //
 //----------------------------------------------------------------------------//
 
-// @ts-ignore — mammoth has no TypeScript type declarations
-  import mammoth from 'mammoth'
+// "mammoth" is heavy and, thus, loaded lazily (and only once) upon first use
+// in order to keep it out of the main bundle
+
+  let _mammoth:any
+  async function loadedMammoth ():Promise<any> {
+    if (_mammoth == null) {
+      // @ts-ignore — mammoth has no TypeScript type declarations
+      _mammoth = (await import('mammoth')).default
+    }
+    return _mammoth
+  }
 
 /**** DOCXFileReadAsText ****/
 
@@ -28224,6 +28599,7 @@ JCL_RealDrawEditor.registerEffect({
   export async function DOCXasText (Buffer:ArrayBuffer):Promise<string> {
     expectInstanceOf('DOCX document',Buffer,ArrayBuffer,'binary buffer')
     try {
+      const mammoth = await loadedMammoth()
       return (await mammoth.extractRawText({ arrayBuffer:Buffer })).value
     } catch (Signal:any) {
       throwError('ConversionError: could not convert the given DOCX file into plain text, reason: ' + Signal)
@@ -28242,6 +28618,7 @@ JCL_RealDrawEditor.registerEffect({
   export async function DOCXasHTML (Buffer:ArrayBuffer):Promise<string> {
     expectInstanceOf('DOCX document',Buffer,ArrayBuffer,'binary buffer')
     try {
+      const mammoth = await loadedMammoth()
       return (await mammoth.convertToHtml({ arrayBuffer:Buffer })).value
     } catch (Signal:any) {
       throwError('ConversionError: could not convert the given DOCX file into HTML, reason: ' + Signal)
@@ -28260,6 +28637,7 @@ JCL_RealDrawEditor.registerEffect({
   export async function DOCXasMarkdown (Buffer:ArrayBuffer):Promise<string> {
     expectInstanceOf('DOCX document',Buffer,ArrayBuffer,'binary buffer')
     try {
+      const mammoth = await loadedMammoth()
       const HTML = (await mammoth.convertToHtml({ arrayBuffer:Buffer })).value
       return HTMLtoMarkdown(HTML)
     } catch (Signal:any) {
@@ -28271,15 +28649,27 @@ JCL_RealDrawEditor.registerEffect({
 //                            PDF[FileRead]AsText                             //
 //----------------------------------------------------------------------------//
 
- import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
+// "pdfjs-dist" is heavy and, thus, loaded lazily (and only once) upon first
+// use in order to keep it out of the main bundle
 
-  GlobalWorkerOptions.workerSrc = new URL(/* @vite-ignore */ './pdf.worker.min.mjs', import.meta.url).href
-// the Worker URL is relative to the delivering bundle directory: in the bundled
-// build, "import.meta.url" points to the main bundle; "pdf.worker.min.mjs" is
-// expected alongside it. In the unbundled dev build (node_modules),
-// the original path "pdfjs-dist/build/pdf.worker.min.mjs" works via the Node
-// resolver. "@vite-ignore" suppresses the (intended) "doesn't exist at build
-// time" warning - the URL is deliberately resolved at runtime only.
+  let _getPDFDocument:any
+  async function loadedPDFjs ():Promise<any> {
+    if (_getPDFDocument == null) {
+      const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist')
+
+      GlobalWorkerOptions.workerSrc = new URL(/* @vite-ignore */ './pdf.worker.min.mjs', import.meta.url).href
+    // the Worker URL is relative to the delivering bundle directory: in the
+    // bundled build, "import.meta.url" points to the main bundle;
+    // "pdf.worker.min.mjs" is expected alongside it. In the unbundled dev
+    // build (node_modules), the original path
+    // "pdfjs-dist/build/pdf.worker.min.mjs" works via the Node resolver.
+    // "@vite-ignore" suppresses the (intended) "doesn't exist at build time"
+    // warning - the URL is deliberately resolved at runtime only.
+
+      _getPDFDocument = getDocument
+    }
+    return _getPDFDocument
+  }
 
 /**** PDFFileReadAsText ****/
 
@@ -28293,6 +28683,7 @@ JCL_RealDrawEditor.registerEffect({
   export async function PDFasText (Buffer:ArrayBuffer):Promise<string> {
     expectInstanceOf('PDF document',Buffer,ArrayBuffer,'binary buffer')
     try {
+      const getDocument = await loadedPDFjs()
       const PDF = await getDocument({
         data:   Buffer,
         wasmUrl:new URL(/* @vite-ignore */ './vendors/', import.meta.url).href,

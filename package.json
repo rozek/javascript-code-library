@@ -18,10 +18,12 @@
   "files": ["dist"],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.slim.config.ts && npm run agadoo",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "agadoo": "agadoo ./dist/javascript-code-library.slim.esm.js",
+    "postinstall": "patch-package"
   },
   "repository": {
     "type": "git",
@@ -53,18 +55,19 @@
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/lang-xml": "^6.1.0",
     "@codemirror/lang-yaml": "^6.1.3",
+    "agadoo": "^3.0.0",
     "detect-it": "^4.0.1",
     "htm": "^3.1.1",
     "javascript-interface-library": "^1.1.0",
     "jsdom": "^29.1.1",
     "mammoth": "^1.12.0",
+    "patch-package": "^8.0.1",
     "pdfjs-dist": "^6.1.200",
     "preact": "^10.29.7",
     "typescript": "^5.8.0",
     "vite": "^6.3.0",
     "vite-plugin-dts": "^4.5.0",
     "vite-plugin-static-copy": "^4.1.1",
-    "vitest": "^3.1.0",
-    "zod": "^4.4.3"
+    "vitest": "^3.1.0"
   }
 }

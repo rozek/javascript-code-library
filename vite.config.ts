@@ -5,6 +5,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 export default defineConfig({
   build: {
+    target: 'es2022',
     lib: {
       entry: resolve(__dirname, 'src/javascript-code-library.ts'),
       formats: ['es'],
@@ -20,6 +21,17 @@ export default defineConfig({
       // never installed here, they are hosted separately and resolved
       // through an Import Map at runtime, see "docs/codemirror-bundles.md"
       external: (id) => id.startsWith('@codemirror/'),
+      output: {
+        // "mammoth" and "pdfjs-dist" are dynamically imported (s.
+        // "loadedMammoth"/"loadedPDFjs") and, thus, end up in their own
+        // lazily-loaded chunks - name them after their package instead of
+        // Rollup's guessed (and rather cryptic) "index"/"pdf"
+        manualChunks (id) {
+          if (id.includes('/node_modules/mammoth/'))     { return 'mammoth' }
+          if (id.includes('/node_modules/pdfjs-dist/'))  { return 'pdfjs-dist' }
+        },
+        chunkFileNames: '[name]-[hash].js',
+      },
     },
   },
   plugins: [

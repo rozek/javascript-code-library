@@ -22,7 +22,6 @@ import { useMemo } from 'preact/hooks';
 import { useRef } from 'preact/hooks';
 import { useState } from 'preact/hooks';
 import { VNode } from 'preact';
-import { z } from 'zod';
 
 declare const $L10nDictionary: unique symbol;
 
@@ -1736,95 +1735,18 @@ export declare const JCL_supportedMarkdownFormats: string[];
 /**** ValueIsTextFormat ****/
 export declare const JCL_supportedTextFormats: string[];
 
-export declare type JCL_Swatch = z.infer<typeof JCL_SwatchSchema>;
+export declare type JCL_Swatch = {
+    [Key in JCL_SwatchKey]?: string;
+};
 
-export declare type JCL_SwatchKey = keyof typeof JCL_SwatchSchema.shape;
+export declare type JCL_SwatchKey = (typeof _SwatchColorKeys[number] | typeof _SwatchLengthKeys[number] | typeof _SwatchFontKeys[number]);
 
 export declare const JCL_SwatchKeys: JCL_SwatchKey[];
 
-export declare const JCL_SwatchSchema: z.ZodObject<{
-    '--jcl-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-primary-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-primary-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-secondary-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-secondary-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-muted-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-muted-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-destructive-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-destructive-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-accent-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-accent-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-success-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-success-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-warning-bg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-warning-fg-color': z.ZodOptional<z.ZodString>;
-    '--jcl-border-color': z.ZodOptional<z.ZodString>;
-    '--jcl-input-border-color': z.ZodOptional<z.ZodString>;
-    '--jcl-ring-color': z.ZodOptional<z.ZodString>;
-    '--jcl-border-radius': z.ZodOptional<z.ZodString>;
-    '--jcl-font': z.ZodOptional<z.ZodString>;
-    '--jcl-serif-font': z.ZodOptional<z.ZodString>;
-    '--jcl-sans-serif-font': z.ZodOptional<z.ZodString>;
-    '--jcl-monospace-font': z.ZodOptional<z.ZodString>;
-}, z.core.$strip>;
-
-export declare type JCL_SwatchSet = z.infer<typeof JCL_SwatchSetSchema>;
-
-export declare const JCL_SwatchSetSchema: z.ZodObject<{
-    light: z.ZodObject<{
-        '--jcl-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-primary-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-primary-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-secondary-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-secondary-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-muted-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-muted-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-destructive-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-destructive-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-accent-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-accent-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-success-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-success-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-warning-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-warning-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-border-color': z.ZodOptional<z.ZodString>;
-        '--jcl-input-border-color': z.ZodOptional<z.ZodString>;
-        '--jcl-ring-color': z.ZodOptional<z.ZodString>;
-        '--jcl-border-radius': z.ZodOptional<z.ZodString>;
-        '--jcl-font': z.ZodOptional<z.ZodString>;
-        '--jcl-serif-font': z.ZodOptional<z.ZodString>;
-        '--jcl-sans-serif-font': z.ZodOptional<z.ZodString>;
-        '--jcl-monospace-font': z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>;
-    dark: z.ZodObject<{
-        '--jcl-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-primary-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-primary-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-secondary-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-secondary-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-muted-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-muted-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-destructive-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-destructive-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-accent-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-accent-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-success-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-success-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-warning-bg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-warning-fg-color': z.ZodOptional<z.ZodString>;
-        '--jcl-border-color': z.ZodOptional<z.ZodString>;
-        '--jcl-input-border-color': z.ZodOptional<z.ZodString>;
-        '--jcl-ring-color': z.ZodOptional<z.ZodString>;
-        '--jcl-border-radius': z.ZodOptional<z.ZodString>;
-        '--jcl-font': z.ZodOptional<z.ZodString>;
-        '--jcl-serif-font': z.ZodOptional<z.ZodString>;
-        '--jcl-sans-serif-font': z.ZodOptional<z.ZodString>;
-        '--jcl-monospace-font': z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>;
-}, z.core.$strip>;
+export declare type JCL_SwatchSet = {
+    light: JCL_Swatch;
+    dark: JCL_Swatch;
+};
 
 export declare type JCL_Text = string;
 
@@ -2121,7 +2043,6 @@ export declare function registerSpreadsheetFormulas(FormulaSet: Indexable): void
 /**** resolvedSpecialValue ****/
 export declare function resolvedSpecialValue(Value: any, disabled?: boolean, Placeholder?: string): Indexable;
 
-/**** safelyRendered ****/
 export declare function safelyRendered(Renderer: Function): any;
 
 export declare const SearXNG: Indexable;
@@ -2293,6 +2214,7 @@ export declare function styledPopover(PropSet: Indexable): any;
 /**** styledProgressbar ****/
 export declare function styledProgressbar(PropSet: Indexable): any;
 
+/**** the component itself ****/
 export declare const styledQuarterView: (PropSet: Indexable) => any;
 
 /**** styledRadiobutton ****/
@@ -2381,13 +2303,22 @@ export declare const styledURLInput: (PropSet: Indexable) => any;
 /**** styledWeekInput ****/
 export declare const styledWeekInput: (PropSet: Indexable) => any;
 
-/**** styledYearView ****/
+/**** the component itself ****/
 export declare const styledYearView: (PropSet: Indexable) => any;
+
+/**** StylesheetInstallerFor - defers stylesheet installation until needed ****/
+export declare function StylesheetInstallerFor(Name: JCL_Name, Stylesheet: JCL_Text): () => void;
 
 /**** Subtitle ****/
 export declare function Subtitle(PropSet: Indexable): any;
 
 export declare function SVGView(PropSet: Indexable): any;
+
+declare const _SwatchColorKeys: readonly ["--jcl-bg-color", "--jcl-fg-color", "--jcl-primary-bg-color", "--jcl-primary-fg-color", "--jcl-secondary-bg-color", "--jcl-secondary-fg-color", "--jcl-muted-bg-color", "--jcl-muted-fg-color", "--jcl-destructive-bg-color", "--jcl-destructive-fg-color", "--jcl-accent-bg-color", "--jcl-accent-fg-color", "--jcl-success-bg-color", "--jcl-success-fg-color", "--jcl-warning-bg-color", "--jcl-warning-fg-color", "--jcl-border-color", "--jcl-input-border-color", "--jcl-ring-color"];
+
+declare const _SwatchFontKeys: readonly ["--jcl-font", "--jcl-serif-font", "--jcl-sans-serif-font", "--jcl-monospace-font"];
+
+declare const _SwatchLengthKeys: readonly ["--jcl-border-radius"];
 
 export declare function tabular(PropSet: Indexable): any;
 
@@ -2839,88 +2770,10 @@ export declare function ValueIsSize(Value: any): boolean;
 export declare function ValueIsSpecial(Value: any): boolean;
 
 /**** ValueIsSwatch ****/
-export declare const ValueIsSwatch: (Value: any) => Value is {
-    '--jcl-bg-color'?: string | undefined;
-    '--jcl-fg-color'?: string | undefined;
-    '--jcl-primary-bg-color'?: string | undefined;
-    '--jcl-primary-fg-color'?: string | undefined;
-    '--jcl-secondary-bg-color'?: string | undefined;
-    '--jcl-secondary-fg-color'?: string | undefined;
-    '--jcl-muted-bg-color'?: string | undefined;
-    '--jcl-muted-fg-color'?: string | undefined;
-    '--jcl-destructive-bg-color'?: string | undefined;
-    '--jcl-destructive-fg-color'?: string | undefined;
-    '--jcl-accent-bg-color'?: string | undefined;
-    '--jcl-accent-fg-color'?: string | undefined;
-    '--jcl-success-bg-color'?: string | undefined;
-    '--jcl-success-fg-color'?: string | undefined;
-    '--jcl-warning-bg-color'?: string | undefined;
-    '--jcl-warning-fg-color'?: string | undefined;
-    '--jcl-border-color'?: string | undefined;
-    '--jcl-input-border-color'?: string | undefined;
-    '--jcl-ring-color'?: string | undefined;
-    '--jcl-border-radius'?: string | undefined;
-    '--jcl-font'?: string | undefined;
-    '--jcl-serif-font'?: string | undefined;
-    '--jcl-sans-serif-font'?: string | undefined;
-    '--jcl-monospace-font'?: string | undefined;
-};
+export declare function ValueIsSwatch(Value: any): boolean;
 
 /**** ValueIsSwatchSet ****/
-export declare const ValueIsSwatchSet: (Value: any) => Value is {
-    light: {
-        '--jcl-bg-color'?: string | undefined;
-        '--jcl-fg-color'?: string | undefined;
-        '--jcl-primary-bg-color'?: string | undefined;
-        '--jcl-primary-fg-color'?: string | undefined;
-        '--jcl-secondary-bg-color'?: string | undefined;
-        '--jcl-secondary-fg-color'?: string | undefined;
-        '--jcl-muted-bg-color'?: string | undefined;
-        '--jcl-muted-fg-color'?: string | undefined;
-        '--jcl-destructive-bg-color'?: string | undefined;
-        '--jcl-destructive-fg-color'?: string | undefined;
-        '--jcl-accent-bg-color'?: string | undefined;
-        '--jcl-accent-fg-color'?: string | undefined;
-        '--jcl-success-bg-color'?: string | undefined;
-        '--jcl-success-fg-color'?: string | undefined;
-        '--jcl-warning-bg-color'?: string | undefined;
-        '--jcl-warning-fg-color'?: string | undefined;
-        '--jcl-border-color'?: string | undefined;
-        '--jcl-input-border-color'?: string | undefined;
-        '--jcl-ring-color'?: string | undefined;
-        '--jcl-border-radius'?: string | undefined;
-        '--jcl-font'?: string | undefined;
-        '--jcl-serif-font'?: string | undefined;
-        '--jcl-sans-serif-font'?: string | undefined;
-        '--jcl-monospace-font'?: string | undefined;
-    };
-    dark: {
-        '--jcl-bg-color'?: string | undefined;
-        '--jcl-fg-color'?: string | undefined;
-        '--jcl-primary-bg-color'?: string | undefined;
-        '--jcl-primary-fg-color'?: string | undefined;
-        '--jcl-secondary-bg-color'?: string | undefined;
-        '--jcl-secondary-fg-color'?: string | undefined;
-        '--jcl-muted-bg-color'?: string | undefined;
-        '--jcl-muted-fg-color'?: string | undefined;
-        '--jcl-destructive-bg-color'?: string | undefined;
-        '--jcl-destructive-fg-color'?: string | undefined;
-        '--jcl-accent-bg-color'?: string | undefined;
-        '--jcl-accent-fg-color'?: string | undefined;
-        '--jcl-success-bg-color'?: string | undefined;
-        '--jcl-success-fg-color'?: string | undefined;
-        '--jcl-warning-bg-color'?: string | undefined;
-        '--jcl-warning-fg-color'?: string | undefined;
-        '--jcl-border-color'?: string | undefined;
-        '--jcl-input-border-color'?: string | undefined;
-        '--jcl-ring-color'?: string | undefined;
-        '--jcl-border-radius'?: string | undefined;
-        '--jcl-font'?: string | undefined;
-        '--jcl-serif-font'?: string | undefined;
-        '--jcl-sans-serif-font'?: string | undefined;
-        '--jcl-monospace-font'?: string | undefined;
-    };
-};
+export declare function ValueIsSwatchSet(Value: any): boolean;
 
 export declare function ValueIsTextFormat(Value: any): boolean;
 
