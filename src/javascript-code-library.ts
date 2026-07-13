@@ -4412,6 +4412,15 @@ debugger               // not to be removed (helps debugging within the browser)
 
 /**** installStylesheetFor ****/
 
+// deferred (component-level) stylesheets are always inserted right after
+// the last one of them already installed (or after the "JCL-Stylesheet"
+// base sheet, if none is installed yet) - never simply appended at the
+// end of <head>. This keeps all JCL stylesheets grouped early in <head>,
+// *before* whatever a host application (e.g. WAT) appends afterwards -
+// so that host-level rules of the same specificity (e.g. ".WAD..." or
+// ".WAT...") keep precedence in the cascade, no matter when a JCL
+// component happens to render for the first time
+
   export function installStylesheetFor (
     Name:JCL_Name, Stylesheet:JCL_Text, overwrite:boolean = false
   ):void {
@@ -4428,7 +4437,20 @@ debugger               // not to be removed (helps debugging within the browser)
       StyleElement = document.createElement('style')
         StyleElement.id          = StylesheetId
         StyleElement.textContent = Stylesheet
-      document.head.append(StyleElement)
+
+      const InstalledStylesheets = document.head.querySelectorAll(
+        'style[id^="Stylesheet-for-"]'
+      )
+      const Anchor = (
+        InstalledStylesheets.length > 0
+        ? InstalledStylesheets[InstalledStylesheets.length-1]
+        : document.getElementById('JCL-Stylesheet')
+      )
+      if (Anchor == null) {
+        document.head.prepend(StyleElement)             // JCL-Stylesheet missing
+      } else {
+        Anchor.after(StyleElement)
+      }
 
       StylesheetSet[Name] = Stylesheet
     } else {
