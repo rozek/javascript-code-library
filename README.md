@@ -11,6 +11,12 @@ This library contains the functions and preact components I am using to build my
 Input components protect, where needed, against external changes (e.g. from
 other CRDT nodes) overwriting a user's in-progress local input.
 
+Markdown rendering (`MarkdownView`, `MarkdownAsText`/`MarkdownAsHTML`)
+recognizes `$...$`/`$$...$$` KaTeX math only when it is set off by
+whitespace, punctuation or a line boundary - not when directly adjacent to
+other characters - so that stray dollar signs (prices, `$HOME`, ...) are not
+misread as formulas.
+
 ## Installation ##
 
 `javascript-code-library` is a pure ECMAScript module (ESM).

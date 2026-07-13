@@ -45,10 +45,10 @@ Equivalent to `HTMLtoMarkdown(HTMLContent)`, wrapped in a `Promise`.
 
 Renders Markdown into plain text using a custom [`marked`](https://marked.js.org/)
 renderer (GFM + line breaks enabled, KaTeX math via
-`marked-katex-extension`) that strips inline formatting instead of the
-underlying HTML tags, so lists/blockquotes/headings remain readable.
-Collapses runs of 3+ newlines to a single blank line. Throws
-`ConversionError` on failure.
+`marked-katex-extension`, requiring a blank/punctuation around `$...$`) that
+strips inline formatting instead of the underlying HTML tags, so
+lists/blockquotes/headings remain readable. Collapses runs of 3+ newlines to
+a single blank line. Throws `ConversionError` on failure.
 
 ### `MarkdownFileReadAsHTML(File: File): Promise<string>`
 
@@ -58,7 +58,8 @@ Collapses runs of 3+ newlines to a single blank line. Throws
 
 Renders Markdown into HTML via `marked` (GFM + line breaks, syntax
 highlighting through `marked-highlight`/`highlight.js`, KaTeX math via
-`marked-katex-extension`). Throws `ConversionError` on failure.
+`marked-katex-extension`, requiring a blank/punctuation around `$...$`).
+Throws `ConversionError` on failure.
 
 ## DOCX conversion
 

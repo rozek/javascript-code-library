@@ -102,7 +102,9 @@ from a `Value` prop.
 `Value` prop; `MarkdownView` lazily loads its rendering libraries on first
 use via `loadMarkdownLibraries`/`loadedMarkdownRenderer` (see
 [`JCL.misc`](misc-programming-manual.md) for the underlying Markdown/HTML
-conversion functions).
+conversion functions). Its KaTeX math (`marked-katex-extension`) only
+recognizes `$...$`/`$$...$$` when set off by whitespace, punctuation or a
+line boundary - text directly adjacent to a `$` is left as plain text.
 
 `ImageView`, `SVGView`, `WebView` - render an `<img>`, inline SVG, or
 `<iframe>` respectively.

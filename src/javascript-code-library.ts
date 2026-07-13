@@ -6718,6 +6718,7 @@ console.warn(ErrorToShow)
 
       MarkdownRenderer.use(markedKatex({
         throwOnError:false,
+        nonStandard:false,  // "$...$" needs a blank/punctuation around it
       }))
 
       MarkdownRenderer.use(markedHighlight({
@@ -28546,7 +28547,7 @@ function _ensureBuiltInRealDrawEffects ():void {
           },
         }
       })
-      MarkdownRenderer.use(markedKatex({ nonStandard:true }))
+      MarkdownRenderer.use(markedKatex({ nonStandard:false }))  // "$...$" needs a blank/punctuation around it
 
       return (await MarkdownRenderer.parse(Markdown)).replace(/^\s+|\s+$/g,'').replace(/\n{3,}/g,'\n\n')
     } catch (Signal:any) {
@@ -28579,7 +28580,7 @@ function _ensureBuiltInRealDrawEffects ():void {
         MarkdownRenderer.setOptions({
           gfm:true, breaks:true,
         })
-      MarkdownRenderer.use(markedKatex({ nonStandard:true }))
+      MarkdownRenderer.use(markedKatex({ nonStandard:false }))  // "$...$" needs a blank/punctuation around it
 
       return await MarkdownRenderer.parse(Markdown)
     } catch (Signal:any) {

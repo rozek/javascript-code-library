@@ -66,6 +66,11 @@ Implementation notes worth knowing when debugging conversions:
   `loadedMarkdownRenderer`. The *text* variant uses a custom `marked`
   renderer that strips inline formatting and reflows lists/blockquotes
   instead of just stripping all HTML tags, to keep the output readable.
+- **KaTeX math** is only recognized as such when the `$...$`/`$$...$$` span
+  is set off by whitespace, punctuation or a line boundary
+  (`marked-katex-extension`'s `nonStandard:false`, its default) - text
+  directly adjacent to a `$` (e.g. a price like `Preis$5-3$Rabatt`) is left
+  untouched instead of risking a misparse.
 - **DOCX** conversion is delegated entirely to
   [`mammoth`](https://github.com/mwilliamson/mammoth.js) (bundled with the
   package); `DOCXasMarkdown` internally converts to HTML first, then
