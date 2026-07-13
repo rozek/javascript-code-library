@@ -23,8 +23,12 @@ npm install javascript-code-library
 
 and bundle it with your application - in that case, no code needs to be
 loaded from any third party at runtime for the "core" of the library
-(preact, htm, zod, detect-it, javascript-interface-library, mammoth and
-pdfjs-dist are already bundled into the single ESM file).
+(preact, htm, detect-it and javascript-interface-library are bundled right
+into the single ESM file). `mammoth` and `pdfjs-dist` - needed for DOCX and
+PDF conversion, respectively - ship as separate chunk files alongside it and
+are loaded (from your own server, never from a third party) only when
+`DOCXasText`/`DOCXasHTML`/`DOCXasMarkdown` or `PDFasText` are actually
+called, so unused conversions never cost anything.
 
 For buildless setups, it is recommended to **host the module yourself**:
 simply download the ready-made file
@@ -76,8 +80,11 @@ import * as JCL from 'javascript-code-library'
 ```
 
 All module functions and values are exported individually, thus allowing
-your bundler to perform some "tree-shaking" in order to include actually
-used functions or values (together with their dependencies) only.
+your bundler to perform "tree-shaking" in order to include actually used
+functions or values (together with their dependencies) only - importing
+JCL causes no module-level side effects of its own, which is verified with
+[`agadoo`](https://github.com/Rich-Harris/agadoo) as part of the build
+(see "Notes on the build" below).
 
 ## Usage of the UI components ##
 
@@ -140,13 +147,33 @@ original sources (BBN) are not (yet) part of this repository.
 
 ### Notes on the build ###
 
-* unlike `javascript-interface-library`, this package is **not** checked
-  with [`agadoo`](https://github.com/Rich-Harris/agadoo): JCL intentionally
-  contains module-level side effects (it registers the `jcl-applet` custom
-  element and lets individual components inject their own, scoped
-  `<style>` rules on first use) - such side effects are exactly what
-  `agadoo`/pure ESM tree-shaking is meant to flag, so the check does not
-  apply here and would only ever fail.
+* like `javascript-interface-library`, this package **is** checked with
+  [`agadoo`](https://github.com/Rich-Harris/agadoo) as part of `npm run
+  build`: merely importing (any part of) JCL causes no module-level side
+  effects any more - not even injecting global `<style>` rules or
+  registering the `jcl-applet` custom element. Every UI component installs
+  its own (scoped) stylesheet lazily, upon its first rendering only, and
+  `defineJCLApplet()` must be called explicitly to register
+  `<jcl-applet>`.
+* since `agadoo` cannot see through bundled peer dependencies (and some of
+  them, like `preact`, have legitimate side effects of their own upon
+  loading), the build additionally produces a "slim" variant
+  (`dist/javascript-code-library.slim.esm.js`, see `vite.slim.config.ts`)
+  which keeps `preact`, `htm`, `detect-it`, `javascript-interface-library`,
+  `mammoth` and `pdfjs-dist` external - that slim file is the one `agadoo`
+  actually checks; it is not meant for direct use, only the regular,
+  self-contained `javascript-code-library.esm.js` is.
+* `agadoo`'s own parser does not yet understand private class fields
+  (`#foo`), which JCL's source relies on - a small patch (applied
+  automatically via `patch-package` on `npm install`, see `patches/`)
+  fixes that.
+* `mammoth` and `pdfjs-dist` (unlike the *optional* peer libraries
+  mentioned above, which need an Import Map on the hosting page) are always
+  part of the package, just not loaded eagerly: they are imported
+  dynamically upon first use, so the build also emits
+  `dist/mammoth-*.js` and `dist/pdfjs-dist-*.js` chunk files (with content
+  hashes in their names, which change from build to build) - keep them
+  alongside the main ESM file when deploying.
 * `pdfjs-dist`'s worker file is copied into `dist/` as part of the build
   (see `vite.config.ts`), since `PDFFileReadAsText`/`PDFasText` resolve it
   relative to the bundle's own URL at runtime.
