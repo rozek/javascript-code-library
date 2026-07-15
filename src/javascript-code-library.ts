@@ -9837,13 +9837,14 @@ console.warn(ErrorToShow)
     .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker {
       display:inline-block; position:absolute;
       left:0px; top:0px; width:20px; height:30px; text-align:center;
-      background:none !important;
-      font-family:FontAwesome; font-size:22px; line-height:29px;
+      background-color:currentColor; ${CSS_MaskIcon}
       pointer-events:auto;
     }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.plain::after     { content:"\\f10c"; font-size:14px; position:relative; top:-3px }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed::after { content:"\\f0da" }
-    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded::after  { content:"\\f0d7" }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.plain {
+      width:6px; height:6px; left:7px; top:12px; border-radius:50%;
+    }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed { ${CSS_ChevronRight} }
+    .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded  { ${CSS_ChevronDown} }
 
   /**** LabelLine LabelView ****/
 
