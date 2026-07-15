@@ -1290,6 +1290,7 @@ debugger               // not to be removed (helps debugging within the browser)
   const CSS_ChevronLeft  = CSS_MaskImage('m15 18-6-6 6-6')
   const CSS_ChevronRight = CSS_MaskImage('m9 18 6-6-6-6')
   const CSS_Checkmark    = CSS_MaskImage('M20 6 9 17l-5-5')
+  const CSS_Close        = CSS_MaskImage('M18 6 6 18M6 6l12 12')
 
 //------------------------------------------------------------------------------
 //--                 Classification and Validation Functions                  --
@@ -4309,9 +4310,7 @@ debugger               // not to be removed (helps debugging within the browser)
     display:inline-block; position:relative;
     margin-top:3px; margin-right:4px; width:24px; height:24px;
     border:none;
-    background:url(${AssetsBase}icons/xmark.png);
-    background-repeat:no-repeat;
-    background-size:contain; background-position:center;
+    background-color:currentColor; ${CSS_MaskIcon} ${CSS_Close}
     cursor:pointer;
     user-select:none; pointer-events:auto;
   }
