@@ -7713,7 +7713,7 @@ console.warn(ErrorToShow)
         )
 
         return html`<input type=${InputType} class="${BaseClasses} ${Classes} ${invalid ? 'invalid' : ''}" ref=${ViewRef}
-          value=${actualValue} minlength=${minLength} maxlength=${maxLength}
+          value=${actualValue ?? ''} minlength=${minLength} maxlength=${maxLength}
           multiple=${multiple} readOnly=${readonly} placeholder=${actualPlaceholder}
           pattern=${Pattern} spellcheck=${SpellChecking}
           disabled=${actualDisabling} list=${SuggestionId}
@@ -7785,7 +7785,7 @@ console.warn(ErrorToShow)
         )
 
         return html`<input type=${InputType} class="${BaseClasses} ${Classes}" ref=${ViewRef}
-          value=${actualValue} min=${Minimum} max=${Maximum}
+          value=${actualValue ?? ''} min=${Minimum} max=${Maximum}
           step=${TimeLike ? (withSeconds ? 1 : 60) : undefined} pattern=${Pattern}
           readOnly=${readonly}
           disabled=${actualDisabling} list=${SuggestionId}
@@ -7906,7 +7906,7 @@ console.warn(ErrorToShow)
 
       return html`<input type="number" ref=${ViewRef}
         class="jcl-component native-textual-input native-number-input ${Classes} ${invalid ? 'invalid' : ''}"
-        value=${actualValue} min=${Minimum} max=${Maximum} step=${actualStepping}
+        value=${actualValue ?? ''} min=${Minimum} max=${Maximum} step=${actualStepping}
         readOnly=${readonly} placeholder=${actualPlaceholder}
         disabled=${actualDisabling} list=${SuggestionId}
         onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
@@ -8288,7 +8288,7 @@ console.warn(ErrorToShow)
           ? 'overflow-wrap:break-word; hyphens:auto;'
           : 'white-space:pre;'
         } resize:${Resizability ?? 'none'}; ${Style}"
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
+        value=${actualValue ?? ''} minlength=${minLength} maxlength=${maxLength}
         readOnly=${readonly} placeholder=${actualPlaceholder}
         spellcheck=${SpellChecking} disabled=${actualDisabling}
         onInput=${_onInput} onBlur=${_onBlur} ...${PropSet.RestProps}
@@ -22676,7 +22676,7 @@ function _ensureBuiltInRealDrawEffects ():void {
 
       return html`<input type="number" ref=${ViewRef}
         class="jcl-component styled-input styled-number-input ${SizeClass} ${Classes} ${invalid ? 'invalid' : ''}"
-        value=${actualValue} min=${Minimum} max=${Maximum} step=${actualStepping}
+        value=${actualValue ?? ''} min=${Minimum} max=${Maximum} step=${actualStepping}
         readOnly=${readonly} placeholder=${actualPlaceholder}
         disabled=${actualDisabling} list=${SuggestionId}
         aria-invalid=${invalid ? 'true' : undefined}
@@ -23112,7 +23112,7 @@ function _ensureBuiltInRealDrawEffects ():void {
           ? 'overflow-wrap:break-word; hyphens:auto;'
           : 'white-space:pre;'
         } resize:${Resizability ?? 'none'}; ${Style}"
-        value=${actualValue} minlength=${minLength} maxlength=${maxLength}
+        value=${actualValue ?? ''} minlength=${minLength} maxlength=${maxLength}
         readOnly=${readonly} placeholder=${actualPlaceholder}
         spellcheck=${SpellChecking} disabled=${actualDisabling}
         aria-invalid=${invalid ? 'true' : undefined}
