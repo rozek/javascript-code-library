@@ -594,18 +594,13 @@ debugger               // not to be removed (helps debugging within the browser)
   export async function fetchedDataURL (
     URL:JCL_URL, OptionSet:Indexable = {}
   ):Promise<JCL_URL> {
-    const Result = await fetched(URL,OptionSet)
-    const Blob   = await Result.blob()
-
-    let resolve!:(Value:JCL_URL) => void, reject!:(Reason?:any) => void
-    const promise = new Promise<JCL_URL>((_resolve,_reject) => {
-      resolve = _resolve; reject = _reject
-    })
+    const Blob = await (await fetched(URL,OptionSet)).blob()
+    return new Promise((resolve,reject) => {
       const Reader = new FileReader()
         Reader.onloadend = () => resolve(Reader.result as JCL_URL)
         Reader.onerror   = reject
       Reader.readAsDataURL(Blob)
-    return promise
+    })
   }
 
 /**** fetchedAsText ****/
@@ -9003,7 +8998,7 @@ console.warn(ErrorToShow)
               )
             } else {                                // select item (if possible)
               if (selectedItems.length === SelectionLimit) {
-                return selectedItems
+                newSelection = [Item]       // on touch: replace rather than block
               } else {
                 newSelection = [ ...selectedItems,Item ]
               }
@@ -9266,15 +9261,22 @@ console.warn(ErrorToShow)
 
   export type JCL_NestedListItemKey           = string
   export type JCL_KeyOfNestedListItem         = (Item:Indexable ) => JCL_NestedListItemKey
-  export type JCL_NestedListItemRenderer      = (Item:Indexable, isSelected:boolean, isPlain:boolean, isExpanded:boolean, InsertionDirection:''|'before'|'after') => any
+  export type JCL_NestedListItemRenderer      = (Item:Indexable, isSelected:boolean, isPlain:boolean, isExpanded:boolean, InsertionDirection:''|'before'|'into'|'after') => any
   export type JCL_onNestedListItemClick       = (Item:Indexable, Event:PointerEvent) => void
   export type JCL_NestedListItemMayBeSelected = (Item:Indexable) => boolean
   export type JCL_onNestedListSelectionChange = (selectedItems:Indexable[]) => void
   export type JCL_NestedListItemMayBeExpanded = (Item:Indexable) => boolean
   export type JCL_onNestedListExpansionChange = (expandedItems:Indexable[]) => void
   export type JCL_NestedListItemMayAccept     = (TargetItem:Indexable, ItemsToMove:Indexable[]) => boolean
-  export type JCL_onNestedListItemMove        = (ItemsToMove:Indexable[], TargetItem:Indexable, Direction:'before'|'after') => void
+  export type JCL_NestedListItemMayContain    = (TargetItem:Indexable, ItemsToMove:Indexable[]) => boolean
+  export type JCL_onNestedListItemMove        = (ItemsToMove:Indexable[], TargetItem:Indexable, Direction:'before'|'into'|'after') => void
   export type JCL_onNestedListItemsDropped    = (Effect:JCL_DataDropEffect, draggedItems:Indexable[], List:Indexable[]) => void
+
+// n.b.: "ListItemMayAccept" tells whether the dragged items may be dropped *at*
+// a given item (i.e. before or after it), "ListItemMayContain" whether they may
+// be dropped *into* it. only when the latter is given at all, list items get a
+// third drop zone in the middle of their label line which reports the direction
+// "into" - without it, this view behaves exactly as it always did
 
 /**** Default_KeyOfNestedListItem ****/
 
@@ -9290,7 +9292,7 @@ console.warn(ErrorToShow)
 
   function Default_NestedListItemRenderer (
     Item:Indexable, isSelected:boolean = false, isPlain:boolean = false,
-    isExpanded:boolean = false, InsertionDirection:''|'before'|'after' = ''
+    isExpanded:boolean = false, InsertionDirection:''|'before'|'into'|'after' = ''
   ):any {
     return Default_FlatListItemRenderer(Item,[],0)  // "List"/"Index" are unused
   }
@@ -9319,6 +9321,7 @@ console.warn(ErrorToShow)
         let   expandedItems         = acceptableValue   (PropSet.expandedItems, (Value:any) => ValueIsListSatisfying(Value,ValueIsPlainObject)) ?? emptyList.current
         const onExpansionChange     = acceptableFunction(PropSet.onExpansionChange)
         const ListItemMayAccept     = acceptableFunction(PropSet.ListItemMayAccept) ?? yeasayer.current
+        const ListItemMayContain    = acceptableFunction(PropSet.ListItemMayContain)
         const onListItemMove        = acceptableFunction(PropSet.onListItemMove)
         const DragMIMEType          = acceptableValue   (PropSet.DragMIMEType, ValueIsMIMEType)
         const SerializeListItems    = acceptableFunction(PropSet.SerializeListItems) ?? JSON.stringify
@@ -9422,11 +9425,13 @@ console.warn(ErrorToShow)
                 (selectedItem:Indexable) => selectedItem !== Item
               )
             } else {               // select item - and deselect all inner items
-              if (selectedItems.length === SelectionLimit) { return selectedItems }
-
-              newSelection = [ ...selectedItems.filter(
-                (selectedItem:Indexable) => ! ItemContainsItem(Item,selectedItem)
-              ), Item]
+              if (selectedItems.length === SelectionLimit) {
+                newSelection = [Item]       // on touch: replace rather than block
+              } else {
+                newSelection = [ ...selectedItems.filter(
+                  (selectedItem:Indexable) => ! ItemContainsItem(Item,selectedItem)
+                ), Item]
+              }
             }
           } else {                                           // select item only
             newSelection = [Item]
@@ -9565,7 +9570,7 @@ console.warn(ErrorToShow)
       const DragAndDropState = useRef<Indexable>({
         dragging:false,
         DropTargetItem:undefined, DropMode:undefined,
-        DropTargetTimer:undefined,
+        DropTargetTimer:undefined, TargetMayContain:false,
       })
 
     /**** state kept across a single drag gesture (used for export only) ****/
@@ -9669,6 +9674,70 @@ console.warn(ErrorToShow)
 
         rerender()
       }
+    /**** ItemMayContainDraggedItems ****/
+
+      function ItemMayContainDraggedItems (Item:Indexable):boolean {
+        const { ListItemMayContain } = ListContext
+        if (ListItemMayContain == null) { return false }
+
+        return (executedCallback(
+          'NestedListView callback "ListItemMayContain"',
+          ListItemMayContain, Item, selectedItems
+        ) == true)
+      }
+
+    /**** AutoExpansionZoneOf - the zone which triggers an auto-expansion ****/
+
+// hovering over the zone which nests items into another one expands that item
+// after a while, making its current contents visible - and available as drop
+// targets themselves. for items without such a zone, the "after" zone keeps
+// serving that purpose, just as it always did
+
+      function AutoExpansionZoneOf ():'into'|'after' {
+        return (ListContext.State.TargetMayContain ? 'into' : 'after')
+      }
+
+    /**** startAutoExpansionTimerFor ****/
+
+      function startAutoExpansionTimerFor (Item:Indexable):void {
+        ListContext.State.DropTargetTimer = setTimeout(() => {// auto-expand after 2s
+          ListContext.State.DropTargetTimer = undefined
+          if (ListContext.State.DropMode === AutoExpansionZoneOf()) {
+            autoExpandItem(Item)
+            rerender()        // since "autoExpandItem" does not rerender itself
+          }
+        }, 2000)
+      }
+
+    /**** DropZoneOf - where exactly is the pointer hovering over an item? ****/
+
+// deliberately, an item's own label line is measured rather than its complete
+// view: the latter also spans the contents of an expanded item, which would put
+// its centre somewhere among that item's descendants
+//
+// items which may contain the dragged ones are split into three zones, all
+// others keep being split into halves, exactly as they always were
+
+      function DropZoneOf (Event:DragEvent):'before'|'into'|'after' {
+        const ItemView  = Event.target as HTMLElement
+        const LabelLine = ItemView.querySelector(':scope > .labelline')
+
+        const { top:Top, height:Height } = (
+          (LabelLine ?? ItemView) as HTMLElement
+        ).getBoundingClientRect()
+        const Offset = Event.clientY-Top
+
+        if (! ListContext.State.TargetMayContain) {
+          return (Offset < Height/2 ? 'before' : 'after')
+        }
+
+        switch (true) {
+          case (Offset <  Height/3):   return 'before'
+          case (Offset >= Height*2/3): return 'after'
+          default:                     return 'into'
+        }
+      }
+
     /**** handleDragEnter - n.b.: new item is entered before old one is left! ****/
 
       function handleDragEnter (Event:DragEvent, Item:Indexable):void {
@@ -9678,15 +9747,11 @@ console.warn(ErrorToShow)
           ListContext.State.DropTargetTimer = undefined
         }
 
-        ListContext.State.DropTargetItem = Item
+        ListContext.State.DropTargetItem   = Item
+        ListContext.State.TargetMayContain = ItemMayContainDraggedItems(Item)
+          // asked once per entered item, not again on every single "dragover"
 
-        ListContext.State.DropTargetTimer = setTimeout(() => {// auto-expand after 2s
-          ListContext.State.DropTargetTimer = undefined
-          if (ListContext.State.DropMode === 'after') {
-            autoExpandItem(Item)
-            rerender()        // since "autoExpandItem" does not rerender itself
-          }
-        }, 2000)
+        startAutoExpansionTimerFor(Item)
 
         let Container = executedCallback(
           'NestedListView callback "ContainerOfListItem"',
@@ -9703,18 +9768,14 @@ console.warn(ErrorToShow)
     /**** handleDragOver ****/
 
       function handleDragOver (Event:DragEvent, Item:Indexable):void {
-        const Limit    = (Event.target as HTMLElement).getBoundingClientRect().top + (Event.target as HTMLElement).offsetHeight/2
-        const DropMode = Event.clientY < Limit ? 'before' : 'after'
+        const DropMode = DropZoneOf(Event)
 
         if (ListContext.State.DropMode !== DropMode) {
-          if ((DropMode === 'after') && (ListContext.State.DropTargetTimer == null)) {
-            ListContext.State.DropTargetTimer = setTimeout(() => {// auto-expand after 2s
-              ListContext.State.DropTargetTimer = undefined
-              if (ListContext.State.DropMode === 'after') {
-                autoExpandItem(Item)
-                rerender()    // since "autoExpandItem" does not rerender itself
-              }
-            }, 2000)
+          if (
+            (DropMode === AutoExpansionZoneOf()) &&
+            (ListContext.State.DropTargetTimer == null)
+          ) {
+            startAutoExpansionTimerFor(Item)
           }
 
           ListContext.State.DropMode = DropMode
@@ -9734,7 +9795,8 @@ console.warn(ErrorToShow)
 
         if (DropTargetItem != null) {
           autoCollapseItem(DropTargetItem)
-          ListContext.State.DropTargetItem = undefined
+          ListContext.State.DropTargetItem   = undefined
+          ListContext.State.TargetMayContain = false
         }                                       // without explicit rerendering!
 
         setTimeout(rerender,500)          // wait for potential "autoExpandItem"
@@ -9752,9 +9814,10 @@ console.warn(ErrorToShow)
             onListItemMove, selectedItems, DropTargetItem, DropMode
           )                        // caller should update its list and rerender
 
-          ListContext.State.dragging       = false
-          ListContext.State.DropTargetItem = undefined
-          ListContext.State.DropMode       = undefined
+          ListContext.State.dragging         = false
+          ListContext.State.DropTargetItem   = undefined
+          ListContext.State.DropMode         = undefined
+          ListContext.State.TargetMayContain = false
         }
       }
 
@@ -9767,7 +9830,8 @@ console.warn(ErrorToShow)
         ContentOfListItem, ListIsSelectable, ListItemMayBeSelected, onListItemClick,
         SelectionSet, anyOuterItemIsSelected, changeSelection,
         ExpansionMap, ListItemMayBeExpanded, toggleExpansionOf,
-        ListItemWithKey:ListItemWithKey.current, ListItemMayAccept,
+        ListItemWithKey:ListItemWithKey.current,
+        ListItemMayAccept, ListItemMayContain,
         State:DragAndDropState.current, rerender
       }
 
@@ -9841,11 +9905,27 @@ console.warn(ErrorToShow)
       border-bottom:solid 1px lightgray;
     }
 
-    .jcl-component.nestedlistview .listitemview.before > .labelline {
-      border-top:solid 20px #DDDDDD;
+  /**** Drop Indicators ****/
+
+  /* deliberately, none of these rules may affect the layout: the drop zones */
+  /* are measured while dragging, and their boundaries must not move around  */
+  /* underneath the pointer which is currently being hovered over them       */
+
+    .jcl-component.nestedlistview .listitemview > .labelline::after {
+      content:''; display:none; position:absolute; z-index:1;
+      left:0px; right:0px; height:3px;
+      background-color:dodgerblue;
+      pointer-events:none;
     }
-    .jcl-component.nestedlistview .listitemview.after > .labelline {
-      border-bottom:solid 21px #DDDDDD;
+    .jcl-component.nestedlistview .listitemview.before > .labelline::after {
+      display:block; top:0px;
+    }
+    .jcl-component.nestedlistview .listitemview.after > .labelline::after {
+      display:block; bottom:0px;
+    }
+    .jcl-component.nestedlistview .listitemview.into > .labelline {
+      background-color:rgba(30,144,255, 0.25);
+      outline:solid 2px dodgerblue; outline-offset:-2px;
     }
 
   /**** LabelLine ExpansionMarker ****/
@@ -9861,6 +9941,12 @@ console.warn(ErrorToShow)
     }
     .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.collapsed { ${CSS_ChevronRight} }
     .jcl-component.nestedlistview .listitemview > .labelline > .expansion-marker.expanded  { ${CSS_ChevronDown} }
+
+  /* while dragging, the marker must not swallow the drag events of its item */
+
+    .jcl-component.nestedlistview.dragging .listitemview > .labelline > .expansion-marker {
+      pointer-events:none;
+    }
 
   /**** LabelLine LabelView ****/
 
