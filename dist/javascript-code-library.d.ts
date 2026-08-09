@@ -1256,7 +1256,9 @@ export declare type JCL_NestedListItemMayBeExpanded = (Item: Indexable) => boole
 
 export declare type JCL_NestedListItemMayBeSelected = (Item: Indexable) => boolean;
 
-export declare type JCL_NestedListItemRenderer = (Item: Indexable, isSelected: boolean, isPlain: boolean, isExpanded: boolean, InsertionDirection: '' | 'before' | 'after') => any;
+export declare type JCL_NestedListItemMayContain = (TargetItem: Indexable, ItemsToMove: Indexable[]) => boolean;
+
+export declare type JCL_NestedListItemRenderer = (Item: Indexable, isSelected: boolean, isPlain: boolean, isExpanded: boolean, InsertionDirection: '' | 'before' | 'into' | 'after') => any;
 
 export declare const JCL_noSelection: {
     Placeholder: string;
@@ -1321,7 +1323,7 @@ export declare type JCL_onNestedListExpansionChange = (expandedItems: Indexable[
 
 export declare type JCL_onNestedListItemClick = (Item: Indexable, Event: PointerEvent) => void;
 
-export declare type JCL_onNestedListItemMove = (ItemsToMove: Indexable[], TargetItem: Indexable, Direction: 'before' | 'after') => void;
+export declare type JCL_onNestedListItemMove = (ItemsToMove: Indexable[], TargetItem: Indexable, Direction: 'before' | 'into' | 'after') => void;
 
 export declare type JCL_onNestedListItemsDropped = (Effect: JCL_DataDropEffect, draggedItems: Indexable[], List: Indexable[]) => void;
 
